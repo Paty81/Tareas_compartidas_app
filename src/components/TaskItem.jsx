@@ -1,45 +1,117 @@
 import React from 'react';
-import { CheckCircle, Circle, Trash2 } from 'lucide-react';
+import { CheckCircle, Circle, Trash2, Calendar, Clock, Star } from 'lucide-react';
 
-const TaskItem = ({ task, onToggle, onDelete }) => (
-  <div
-    className={`group flex items-center gap-3 p-4 rounded-xl transition-all border border-transparent ${
-      task.completed ? 'bg-slate-50' : 'bg-white border-slate-100 shadow-sm'
-    }`}
-  >
-    {/* Botón para marcar/desmarcar */}
-    <button
-      onClick={() => onToggle(task)}
-      className={`shrink-0 transition-colors p-1 rounded-full hover:bg-slate-200 ${
-        task.completed ? 'text-green-500' : 'text-slate-300 hover:text-indigo-500'
+const TaskItem = ({ task, onToggle, onDelete }) => {
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short'
+    });
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    return new Date(timestamp).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const isScheduledForFuture = task.scheduledDate && new Date(task.scheduledDate) > new Date();
+
+  // Colores aleatorios para las tareas
+  const colors = [
+    'from-pink-500 to-rose-500',
+    'from-purple-500 to-indigo-500',
+    'from-blue-500 to-cyan-500',
+    'from-emerald-500 to-teal-500',
+    'from-orange-500 to-amber-500',
+  ];
+  const colorIndex = task.text.length % colors.length;
+  const gradientColor = colors[colorIndex];
+
+  return (
+    <div
+      className={`group flex items-start gap-3 p-4 rounded-2xl transition-all ${
+        task.completed
+          ? 'bg-slate-50 opacity-60'
+          : 'bg-white border-2 border-slate-100 shadow-sm hover:shadow-lg hover:scale-[1.02] hover:border-purple-200'
       }`}
     >
-      {task.completed ? <CheckCircle size={26} /> : <Circle size={26} />}
-    </button>
+      {/* Indicador de color */}
+      {!task.completed && (
+        <div className={`w-1 self-stretch rounded-full bg-gradient-to-b ${gradientColor}`} />
+      )}
 
-    {/* Texto e info de la tarea */}
-    <div className="flex-grow min-w-0">
-      <p className={`text-lg leading-tight break-words ${
-        task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'
-      }`}>
-        {task.text}
-      </p>
-      <div className="flex gap-2 text-[10px] text-slate-400 font-mono items-center mt-1">
-        <span>Por: {task.author || 'anon'}</span>
-        <span>•</span>
-        <span>{new Date(task.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+      {/* Botón para marcar/desmarcar */}
+      <button
+        onClick={() => onToggle(task)}
+        className={`shrink-0 transition-all p-1 rounded-full mt-0.5 ${
+          task.completed
+            ? 'text-emerald-500'
+            : 'text-slate-300 hover:text-purple-500 hover:scale-125'
+        }`}
+      >
+        {task.completed ? (
+          <CheckCircle size={28} className="fill-emerald-100" />
+        ) : (
+          <Circle size={28} />
+        )}
+      </button>
+
+      {/* Contenido de la tarea */}
+      <div className="flex-grow min-w-0">
+        <p
+          className={`text-base leading-snug break-words ${
+            task.completed
+              ? 'line-through text-slate-400'
+              : 'text-slate-700 font-semibold'
+          }`}
+        >
+          {task.text}
+        </p>
+
+        {/* Info de la tarea */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs">
+          {/* Autor */}
+          <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+            {task.authorName || task.author || 'Anónimo'}
+          </span>
+
+          {/* Fecha de creación */}
+          <span className="flex items-center gap-1 text-slate-400">
+            <Clock size={12} />
+            {formatDate(task.createdAt)} {formatTime(task.createdAt)}
+          </span>
+
+          {/* Fecha programada */}
+          {task.scheduledDate && (
+            <span
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                isScheduledForFuture
+                  ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-orange-600'
+                  : 'bg-slate-100 text-slate-500'
+              }`}
+            >
+              <Calendar size={12} />
+              {formatDate(task.scheduledDate)} {formatTime(task.scheduledDate)}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
 
-    {/* Botón Eliminar (Rojo) */}
-    <button
-      onClick={() => onDelete(task.id)}
-      className="p-3 text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-600 rounded-xl transition-all shrink-0"
-      title="Eliminar definitivamente"
-    >
-      <Trash2 size={20} />
-    </button>
-  </div>
-);
+      {/* Botón Eliminar */}
+      <button
+        onClick={() => onDelete(task.id)}
+        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0 opacity-0 group-hover:opacity-100"
+        title="Eliminar tarea"
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  );
+};
 
 export default TaskItem;
