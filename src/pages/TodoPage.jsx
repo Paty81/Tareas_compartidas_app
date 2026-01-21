@@ -23,8 +23,9 @@ import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
 import TabSelector from '../components/TabSelector';
 
-// EMAIL DEL ADMINISTRADOR
-const ADMIN_EMAIL = "molinamartosp@gmail.com";
+// USUARIO DEL ADMINISTRADOR (tu nombre de usuario)
+const ADMIN_USERNAME = "paty";
+const ADMIN_EMAIL = `${ADMIN_USERNAME}@tareas.app`;
 
 export default function TodoPage() {
   // Auth state
@@ -38,12 +39,24 @@ export default function TodoPage() {
   const [scheduledDate, setScheduledDate] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Locations state
+  // Locations state - guardadas en Firebase para persistencia
   const [locations, setLocations] = useState([
-    { id: 'casa', name: 'Casa', icon: 'home' },
+    { id: 'hogar', name: 'Hogar', icon: 'home' },
     { id: 'trabajo', name: 'Trabajo', icon: 'briefcase' },
   ]);
-  const [selectedLocation, setSelectedLocation] = useState('casa');
+
+  // Detectar ubicación desde URL
+  const getLocationFromURL = () => {
+    const path = window.location.pathname.slice(1); // quitar /
+    if (path && path !== '') return path;
+    return null;
+  };
+
+  const [urlLocation] = useState(getLocationFromURL());
+  const [selectedLocation, setSelectedLocation] = useState(urlLocation || 'hogar');
+
+  // Si hay ubicación en URL, el usuario viene de un enlace compartido
+  const isSharedView = urlLocation !== null;
 
   // Notifications
   const [notificationPermission, setNotificationPermission] = useState('default');
@@ -133,16 +146,19 @@ export default function TodoPage() {
     return () => unsubscribe();
   }, [user, selectedLocation, showNotification]);
 
-  // Auth handlers
-  const handleLogin = async (email, password) => {
+  // Auth handlers - Usando nombre de usuario (se convierte a email interno)
+  const usernameToEmail = (username) => `${username.toLowerCase().trim()}@tareas.app`;
+
+  const handleLogin = async (username, password) => {
     setAuthLoading(true);
     setAuthError('');
     try {
+      const email = usernameToEmail(username);
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       console.error("Login error:", error);
       if (error.code === 'auth/invalid-credential') {
-        setAuthError('Correo o contraseña incorrectos');
+        setAuthError('Usuario o contraseña incorrectos');
       } else if (error.code === 'auth/user-not-found') {
         setAuthError('Usuario no encontrado');
       } else {
@@ -153,16 +169,17 @@ export default function TodoPage() {
     }
   };
 
-  const handleRegister = async (email, password, displayName) => {
+  const handleRegister = async (username, password, displayName) => {
     setAuthLoading(true);
     setAuthError('');
     try {
+      const email = usernameToEmail(username);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName });
+      await updateProfile(userCredential.user, { displayName: displayName || username });
     } catch (error) {
       console.error("Register error:", error);
       if (error.code === 'auth/email-already-in-use') {
-        setAuthError('Este correo ya está registrado');
+        setAuthError('Este nombre de usuario ya está en uso');
       } else if (error.code === 'auth/weak-password') {
         setAuthError('La contraseña debe tener al menos 6 caracteres');
       } else {
@@ -258,13 +275,34 @@ export default function TodoPage() {
     setSelectedLocation(newLocation.id);
   };
 
+  // Establecer prioridad de tarea - Solo admin
+  const handleSetPriority = async (taskId, priority) => {
+    if (!isAdmin) return;
+    try {
+      const taskRef = doc(
+        db,
+        'public_lists',
+        appId,
+        'locations',
+        selectedLocation,
+        'todos',
+        taskId
+      );
+      await updateDoc(taskRef, { priority });
+    } catch (error) {
+      console.error("Error setting priority:", error);
+    }
+  };
+
   const handleShare = () => {
     const currentLocation = locations.find(l => l.id === selectedLocation);
     const locationName = currentLocation?.name || selectedLocation;
-    const shareUrl = window.location.href;
+    // Generar URL única para esta ubicación
+    const baseUrl = window.location.origin;
+    const shareUrl = `${baseUrl}/${selectedLocation}`;
 
     navigator.clipboard.writeText(shareUrl);
-    alert(`¡Enlace copiado!\n\nLista: ${locationName}\n\nComparte este enlace para que otros puedan ver y añadir tareas.`);
+    alert(`¡Enlace copiado!\n\nLista: ${locationName}\nURL: ${shareUrl}\n\nComparte este enlace para que otros puedan ver y añadir tareas a esta lista.`);
   };
 
   const handleOpenNotifications = () => {
@@ -316,14 +354,25 @@ export default function TodoPage() {
             onOpenNotifications={handleOpenNotifications}
           />
 
-          <TabSelector
-            selectedLocation={selectedLocation}
-            onLocationChange={setSelectedLocation}
-            locations={locations}
-            onAddLocation={handleAddLocation}
-            onShare={handleShare}
-            isAdmin={isAdmin}
-          />
+          {/* Solo mostrar tabs si es admin y no es vista compartida */}
+          {!isSharedView ? (
+            <TabSelector
+              selectedLocation={selectedLocation}
+              onLocationChange={setSelectedLocation}
+              locations={locations}
+              onAddLocation={handleAddLocation}
+              onShare={handleShare}
+              isAdmin={isAdmin}
+            />
+          ) : (
+            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-4">
+              <div className="text-center text-white">
+                <span className="font-bold text-lg">
+                  {locations.find(l => l.id === selectedLocation)?.name || selectedLocation}
+                </span>
+              </div>
+            </div>
+          )}
 
           <TaskForm
             newTask={newTask}
@@ -339,6 +388,8 @@ export default function TodoPage() {
             loading={loading}
             onToggle={handleToggleTask}
             onDelete={handleDeleteTask}
+            onSetPriority={handleSetPriority}
+            isAdmin={isAdmin}
           />
         </div>
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { X, Lock, User, LogIn, UserPlus, Loader2 } from 'lucide-react';
 
 const AuthModal = ({ isOpen, onClose, onLogin, onRegister, loading, error }) => {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
 
@@ -12,14 +12,14 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister, loading, error }) => 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isLoginMode) {
-      onLogin(email, password);
+      onLogin(username, password);
     } else {
-      onRegister(email, password, displayName);
+      onRegister(username, password, displayName);
     }
   };
 
   const resetForm = () => {
-    setEmail('');
+    setUsername('');
     setPassword('');
     setDisplayName('');
   };
@@ -63,6 +63,7 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister, loading, error }) => 
             </div>
           )}
 
+          {/* Nombre visible (solo en registro) */}
           {!isLoginMode && (
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -70,25 +71,29 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister, loading, error }) => 
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Tu nombre"
+                placeholder="Tu nombre (cómo te verán otros)"
                 className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white transition-all outline-none text-slate-800"
                 required={!isLoginMode}
               />
             </div>
           )}
 
+          {/* Nombre de usuario */}
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">@</span>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Correo electrónico"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+              placeholder="Nombre de usuario"
               className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white transition-all outline-none text-slate-800"
               required
+              pattern="[a-zA-Z0-9_]+"
+              title="Solo letras, números y guiones bajos"
             />
           </div>
 
+          {/* Contraseña */}
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input

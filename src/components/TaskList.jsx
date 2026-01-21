@@ -2,7 +2,7 @@ import React from 'react';
 import { ClipboardList, Loader2 } from 'lucide-react';
 import TaskItem from './TaskItem';
 
-const TaskList = ({ tasks, loading, onToggle, onDelete }) => {
+const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin }) => {
   if (loading) {
     return (
       <div className="bg-slate-50/50 min-h-[300px] flex flex-col items-center justify-center">
@@ -30,6 +30,14 @@ const TaskList = ({ tasks, loading, onToggle, onDelete }) => {
   const pendingTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
 
+  // Ordenar pendientes por prioridad
+  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3, none: 4, undefined: 4 };
+  pendingTasks.sort((a, b) => {
+    const priorityA = priorityOrder[a.priority] ?? 4;
+    const priorityB = priorityOrder[b.priority] ?? 4;
+    return priorityA - priorityB;
+  });
+
   return (
     <div className="bg-slate-50/50 min-h-[300px] p-4 space-y-3">
       {/* Tareas pendientes */}
@@ -39,6 +47,8 @@ const TaskList = ({ tasks, loading, onToggle, onDelete }) => {
           task={task}
           onToggle={onToggle}
           onDelete={onDelete}
+          onSetPriority={onSetPriority}
+          isAdmin={isAdmin}
         />
       ))}
 
@@ -60,6 +70,8 @@ const TaskList = ({ tasks, loading, onToggle, onDelete }) => {
           task={task}
           onToggle={onToggle}
           onDelete={onDelete}
+          onSetPriority={onSetPriority}
+          isAdmin={isAdmin}
         />
       ))}
     </div>
