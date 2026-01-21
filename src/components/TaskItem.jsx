@@ -192,10 +192,10 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin }) => {
         </div>
       )}
 
-      {/* Botón Eliminar */}
+      {/* Botón Eliminar - Siempre visible */}
       <button
         onClick={() => onDelete(task.id)}
-        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0 opacity-0 group-hover:opacity-100"
+        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0"
         title="Eliminar tarea"
       >
         <Trash2 size={18} />

@@ -275,6 +275,28 @@ export default function TodoPage() {
     setSelectedLocation(newLocation.id);
   };
 
+  const handleDeleteLocation = (locationId) => {
+    if (!isAdmin) return;
+    // No permitir borrar las predeterminadas
+    if (locationId === 'hogar' || locationId === 'trabajo') return;
+
+    setLocations(locations.filter(l => l.id !== locationId));
+    // Si estamos en la lista que se borra, volver a hogar
+    if (selectedLocation === locationId) {
+      setSelectedLocation('hogar');
+    }
+  };
+
+  const handleEditLocation = (locationId, updates) => {
+    if (!isAdmin) return;
+
+    setLocations(locations.map(l =>
+      l.id === locationId
+        ? { ...l, name: updates.name, icon: updates.icon }
+        : l
+    ));
+  };
+
   // Establecer prioridad de tarea - Solo admin
   const handleSetPriority = async (taskId, priority) => {
     if (!isAdmin) return;
@@ -361,14 +383,17 @@ export default function TodoPage() {
               onLocationChange={setSelectedLocation}
               locations={locations}
               onAddLocation={handleAddLocation}
+              onEditLocation={handleEditLocation}
+              onDeleteLocation={handleDeleteLocation}
               onShare={handleShare}
               isAdmin={isAdmin}
             />
           ) : (
-            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-4">
+            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-6">
               <div className="text-center text-white">
-                <span className="font-bold text-lg">
-                  {locations.find(l => l.id === selectedLocation)?.name || selectedLocation}
+                <p className="text-white/70 text-xs mb-1">Lista compartida</p>
+                <span className="font-bold text-xl capitalize">
+                  {locations.find(l => l.id === selectedLocation)?.name || selectedLocation.replace(/-/g, ' ')}
                 </span>
               </div>
             </div>
