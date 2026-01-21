@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { auth, db, appId } from '../config/firebase';
+import { auth, db, appId, requestFCMToken, onForegroundMessage } from '../config/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -14,8 +14,7 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  setDoc,
-  getDoc
+  setDoc
 } from "firebase/firestore";
 
 import Header from '../components/Header';
@@ -47,7 +46,6 @@ export default function TodoPage() {
     { id: 'trabajo', name: 'Trabajo', icon: 'briefcase' },
   ];
   const [locations, setLocations] = useState(defaultLocations);
-  const [locationsLoaded, setLocationsLoaded] = useState(false);
 
   // Detectar ubicación desde URL
   const getLocationFromURL = () => {
@@ -88,26 +86,46 @@ export default function TodoPage() {
       if (docSnap.exists() && docSnap.data().list) {
         setLocations(docSnap.data().list);
       }
-      setLocationsLoaded(true);
     }, (error) => {
       console.error("Error loading locations:", error);
-      setLocationsLoaded(true);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Request notification permission
+  // Configurar FCM y notificaciones push
   useEffect(() => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
     }
+
+    // Escuchar mensajes en primer plano
+    const unsubscribe = onForegroundMessage((payload) => {
+      console.log('Mensaje FCM en primer plano:', payload);
+      if (Notification.permission === 'granted') {
+        new Notification(payload.notification?.title || 'Nueva tarea', {
+          body: payload.notification?.body || 'Tienes una actualización',
+          icon: '/icon-192.png'
+        });
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, []);
 
   const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
+    try {
+      const token = await requestFCMToken();
+      if (token) {
+        setNotificationPermission('granted');
+        console.log('Notificaciones activadas, token:', token);
+      } else {
+        setNotificationPermission(Notification.permission);
+      }
+    } catch (error) {
+      console.error('Error solicitando permisos:', error);
     }
   };
 
