@@ -55,9 +55,6 @@ export default function TodoPage() {
   const [urlLocation] = useState(getLocationFromURL());
   const [selectedLocation, setSelectedLocation] = useState(urlLocation || 'hogar');
 
-  // Si hay ubicación en URL, el usuario viene de un enlace compartido
-  const isSharedView = urlLocation !== null;
-
   // Notifications
   const [notificationPermission, setNotificationPermission] = useState('default');
 
@@ -376,8 +373,8 @@ export default function TodoPage() {
             onOpenNotifications={handleOpenNotifications}
           />
 
-          {/* Solo mostrar tabs si es admin y no es vista compartida */}
-          {!isSharedView ? (
+          {/* Solo el admin ve las pestañas y puede navegar entre listas */}
+          {isAdmin ? (
             <TabSelector
               selectedLocation={selectedLocation}
               onLocationChange={setSelectedLocation}
