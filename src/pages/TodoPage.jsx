@@ -13,7 +13,9 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  onSnapshot
+  onSnapshot,
+  setDoc,
+  getDoc
 } from "firebase/firestore";
 
 import Header from '../components/Header';
@@ -40,10 +42,12 @@ export default function TodoPage() {
   const [loading, setLoading] = useState(true);
 
   // Locations state - guardadas en Firebase para persistencia
-  const [locations, setLocations] = useState([
+  const defaultLocations = [
     { id: 'hogar', name: 'Hogar', icon: 'home' },
     { id: 'trabajo', name: 'Trabajo', icon: 'briefcase' },
-  ]);
+  ];
+  const [locations, setLocations] = useState(defaultLocations);
+  const [locationsLoaded, setLocationsLoaded] = useState(false);
 
   // Detectar ubicación desde URL
   const getLocationFromURL = () => {
@@ -73,6 +77,23 @@ export default function TodoPage() {
         setLoading(false);
       }
     });
+    return () => unsubscribe();
+  }, []);
+
+  // Cargar locations desde Firebase
+  useEffect(() => {
+    const locationsDocRef = doc(db, 'public_lists', appId, 'config', 'locations');
+
+    const unsubscribe = onSnapshot(locationsDocRef, (docSnap) => {
+      if (docSnap.exists() && docSnap.data().list) {
+        setLocations(docSnap.data().list);
+      }
+      setLocationsLoaded(true);
+    }, (error) => {
+      console.error("Error loading locations:", error);
+      setLocationsLoaded(true);
+    });
+
     return () => unsubscribe();
   }, []);
 
@@ -270,31 +291,47 @@ export default function TodoPage() {
     }
   };
 
-  const handleAddLocation = (newLocation) => {
-    setLocations([...locations, newLocation]);
-    setSelectedLocation(newLocation.id);
+  // Guardar locations en Firebase
+  const saveLocationsToFirebase = async (newLocations) => {
+    try {
+      const locationsDocRef = doc(db, 'public_lists', appId, 'config', 'locations');
+      await setDoc(locationsDocRef, { list: newLocations });
+    } catch (error) {
+      console.error("Error saving locations:", error);
+    }
   };
 
-  const handleDeleteLocation = (locationId) => {
+  const handleAddLocation = async (newLocation) => {
+    const newLocations = [...locations, newLocation];
+    setLocations(newLocations);
+    setSelectedLocation(newLocation.id);
+    await saveLocationsToFirebase(newLocations);
+  };
+
+  const handleDeleteLocation = async (locationId) => {
     if (!isAdmin) return;
     // No permitir borrar las predeterminadas
     if (locationId === 'hogar' || locationId === 'trabajo') return;
 
-    setLocations(locations.filter(l => l.id !== locationId));
+    const newLocations = locations.filter(l => l.id !== locationId);
+    setLocations(newLocations);
     // Si estamos en la lista que se borra, volver a hogar
     if (selectedLocation === locationId) {
       setSelectedLocation('hogar');
     }
+    await saveLocationsToFirebase(newLocations);
   };
 
-  const handleEditLocation = (locationId, updates) => {
+  const handleEditLocation = async (locationId, updates) => {
     if (!isAdmin) return;
 
-    setLocations(locations.map(l =>
+    const newLocations = locations.map(l =>
       l.id === locationId
         ? { ...l, name: updates.name, icon: updates.icon }
         : l
-    ));
+    );
+    setLocations(newLocations);
+    await saveLocationsToFirebase(newLocations);
   };
 
   // Establecer prioridad de tarea - Solo admin
