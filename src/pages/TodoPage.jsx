@@ -125,38 +125,85 @@ export default function TodoPage() {
   }, []);
 
   // Cargar locations
+  // Cargar locations
   useEffect(() => {
-    const locationsRef = gun.get(appId).get('config').get('locations');
-    
-    locationsRef.on((data) => {
-      if (data) {
-        // Gun puede devolver el objeto completo serializado o nodos.
-        // Asumimos que guardamos la lista completa como JSON string para simplificar ordenamiento de arrays
-        // o iteramos propiedades.
-        // Para arrays en Gun es mejor usar .set(), pero para configuración simple:
-        try {
-           if(typeof data === 'string') {
-              setLocations(JSON.parse(data));
-           } else if (data.list) {
-              // Intento de compatibilidad
-             const list = typeof data.list === 'string' ? JSON.parse(data.list) : defaultLocations;
-              setLocations(list);
-           }
-        } catch (e) {
-          console.error("Error parsing locations", e);
-        }
-      }
-    });
-    
-    // Inicializar solo si no hay datos previos
+    // ADMIN: Carga TODAS las listas globales
     if (isAdmin) {
+      const locationsRef = gun.get(appId).get('config').get('locations');
+      locationsRef.on((data) => {
+        if (data) {
+          try {
+             if(typeof data === 'string') {
+                setLocations(JSON.parse(data));
+             } else if (data.list) {
+               const list = typeof data.list === 'string' ? JSON.parse(data.list) : defaultLocations;
+               setLocations(list);
+             }
+          } catch (e) {
+            console.error("Error parsing locations", e);
+          }
+        }
+      });
+      // Inicializar si está vacío
       locationsRef.once((data) => {
         if (!data || !data.list) {
            locationsRef.put({ list: JSON.stringify(defaultLocations) });
         }
       });
+    } else {
+      // USUARIO NORMAL: Carga solo SUS listas descubiertas
+      if (!user.is) return;
+      
+      const myListsRef = user.get('my_shared_lists');
+      
+      myListsRef.on((data) => {
+        if (data) {
+          try {
+             const list = typeof data === 'string' ? JSON.parse(data) : (data.list ? JSON.parse(data.list) : []);
+             setLocations(list);
+          } catch (e) {
+             console.error("Error loading my lists", e);
+          }
+        } else {
+             setLocations([]);
+        }
+      });
     }
-  }, [isAdmin]);
+  }, [isAdmin, currentUser]); // Dependencia currentUser para recargar al loguear
+
+  // Efecto para "Descubrir" listas cuando visito un enlace compartido
+  useEffect(() => {
+     if (isAdmin || !isSharedView || !currentUser) return;
+     
+     // Si soy usuario y visito una URL compartida (selectedLocation), la añado a mis listas
+     const alreadyHasIt = locations.some(l => l.id === selectedLocation);
+     if (!alreadyHasIt) {
+        // Necesitamos saber el NOMBRE de la lista. 
+        // Leemos la lista global UNA VEZ para encontrar el nombre correcto
+        gun.get(appId).get('config').get('locations').once((data) => {
+             let foundName = selectedLocation;
+             let foundIcon = 'pin';
+             
+             if (data && data.list) {
+                 try {
+                     const allList = typeof data.list === 'string' ? JSON.parse(data.list) : data.list;
+                     const match = allList.find(l => l.id === selectedLocation);
+                     if (match) {
+                         foundName = match.name;
+                         foundIcon = match.icon;
+                     }
+                 } catch(e) { console.error("Error finding name", e); }
+             }
+
+             const newMyList = [...locations, { id: selectedLocation, name: foundName, icon: foundIcon }];
+             // Guardar en mi perfil de usuario
+             user.get('my_shared_lists').put(JSON.stringify(newMyList)); 
+             
+             // Actualizar localmente para feedback inmediato
+             setLocations(newMyList);
+        });
+     }
+  }, [isSharedView, selectedLocation, isAdmin, currentUser, locations]);
 
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
