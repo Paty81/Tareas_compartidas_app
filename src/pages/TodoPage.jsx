@@ -81,11 +81,8 @@ export default function TodoPage() {
   };
 
   // Locations state
-  const defaultLocations = [
-    { id: 'hogar', name: 'Hogar', icon: 'home' },
-    { id: 'trabajo', name: 'Trabajo', icon: 'briefcase' },
-  ];
-  const [locations, setLocations] = useState(defaultLocations);
+  // Start empty, load from Gun.
+  const [locations, setLocations] = useState([]);
 
   const { listId } = useParams();
   
@@ -174,7 +171,7 @@ export default function TodoPage() {
              if(typeof data === 'string') {
                 setLocations(JSON.parse(data));
              } else if (data.list) {
-               const list = typeof data.list === 'string' ? JSON.parse(data.list) : defaultLocations;
+               const list = typeof data.list === 'string' ? JSON.parse(data.list) : [];
                setLocations(list);
              }
           } catch (e) {
@@ -185,7 +182,11 @@ export default function TodoPage() {
       // Inicializar si está vacío
       locationsRef.once((data) => {
         if (!data || !data.list) {
-           locationsRef.put({ list: JSON.stringify(defaultLocations) });
+           const newDefaults = [
+             { id: crypto.randomUUID(), name: 'Hogar', icon: 'home' },
+             { id: crypto.randomUUID(), name: 'Trabajo', icon: 'briefcase' },
+           ];
+           locationsRef.put({ list: JSON.stringify(newDefaults) });
         }
       });
     } else {
@@ -492,18 +493,19 @@ export default function TodoPage() {
   const handleShare = () => {
     // Verificar si estamos en localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      alert("⚠️ ¡CUIDADO! \n\nEstás en modo de prueba (localhost). Si envías este enlace, Nadie podrá abrirlo porque apunta a TU ordenador.\n\nPara compartir, debes abrir la página web que has publicado (ej. tu-app.vercel.app o github.io) y compartir el enlace desde allí.");
+      alert("⚠️ ¡CUIDADO! \n\nEstás en modo de prueba (localhost). Si envías este enlace, Nadie podrá abrirlo porque apunta a TU ordenador.\n\nPara compartir, debes abrir la página web que has publicado (ej. tu-app.vercel.app) y compartir el enlace desde allí.");
       return;
     }
 
     const currentLocation = locations.find(l => l.id === selectedLocation);
     const locationName = currentLocation?.name || selectedLocation;
-    // Construimos la URL con hash para asegurar compatibilidad (#/ubicacion)
-    const baseUrl = window.location.href.split('#')[0];
-    const shareUrl = `${baseUrl}#/${selectedLocation}`;
+    
+    // Construimos la URL ABSOLUTA explícita
+    const origin = window.location.origin; // https://tu-app.vercel.app
+    const shareUrl = `${origin}/#/${selectedLocation}`;
     
     navigator.clipboard.writeText(shareUrl);
-    alert(`¡Enlace copiado!\n\nLista: ${locationName}\nURL: ${shareUrl}\n\nNota: Compatible con cualquier dispositivo.`);
+    alert(`¡Enlace copiado! 📋\n\nLista: ${locationName}\nURL: ${shareUrl}\n\n⚠️ NOTA: Si pide login de Vercel, desactiva "Vercel Authentication" en Settings > Deployment Protection.`);
   };
 
   const handleOpenNotifications = () => {
