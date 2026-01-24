@@ -2,7 +2,7 @@ import React from 'react';
 import { ClipboardList, Loader2 } from 'lucide-react';
 import TaskItem from './TaskItem';
 
-const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin, appId, selectedLocation }) => {
+const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin, appId, selectedLocation, currentUser }) => {
   if (loading) {
     return (
       <div className="bg-slate-50/50 min-h-[300px] flex flex-col items-center justify-center">
@@ -117,6 +117,7 @@ const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin, 
                                         isAdmin={isAdmin}
                                         appId={appId}
                                         selectedLocation={selectedLocation}
+                                        currentUser={currentUser}
                                     />
                                 </div>
                             </div>
@@ -147,6 +148,7 @@ const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin, 
                 isAdmin={isAdmin}
                 appId={appId}
                 selectedLocation={selectedLocation}
+                currentUser={currentUser}
                 />
             ))}
         </div>

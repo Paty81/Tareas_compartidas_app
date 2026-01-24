@@ -218,8 +218,22 @@ export default function TodoPage() {
      if (isAdmin || !isSharedView || !currentUser) return;
      
      // Leemos la lista global para obtener los metadatos correctos (nombre, icono)
+     // Leemos la lista global para obtener los metadatos correctos (nombre, icono)
      gun.get(appId).get('config').get('locations').once((globalData) => {
-          let foundName = selectedLocation;
+          // Fallback inteligente: extraer nombre del ID si tiene formato "nombre-codigo"
+          const extractName = (id) => {
+              if (id.includes('-')) {
+                  const parts = id.split('-');
+                  // Si el último trozo es corto (codigo), lo quitamos. Si no, dejamos todo.
+                  // Pero mi formato es nombre-codigo.
+                  // Vamos a tomar la parte ANTERIOR al último guión.
+                  const namePart = parts.slice(0, -1).join(' '); 
+                  if (namePart) return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+              }
+              return id;
+          };
+
+          let foundName = extractName(selectedLocation);
           let foundIcon = 'pin';
           
           if (globalData && globalData.list) {
@@ -652,22 +666,20 @@ export default function TodoPage() {
           
           {/* ... (TabSelector & TaskForm) */}
 
-          
-            {(isAdmin || !listId) && (
-            <TabSelector
-              selectedLocation={selectedLocation}
-              onLocationChange={(newId) => {
-                  window.location.hash = `#/${newId}`;
-                  setSelectedLocation(newId);
-              }}
-              locations={locations}
-              onAddLocation={handleAddLocation}
-              onEditLocation={handleEditLocation}
-              onDeleteLocation={handleDeleteLocation}
-              onShare={handleShare}
-              isAdmin={isAdmin}
-            />
-            )}
+          {/* TabSelector Visible for everyone now, so guests can see accumulated shared lists */}
+          <TabSelector
+            selectedLocation={selectedLocation}
+            onLocationChange={(newId) => {
+                window.location.hash = `#/${newId}`;
+                setSelectedLocation(newId);
+            }}
+            locations={locations}
+            onAddLocation={handleAddLocation}
+            onEditLocation={handleEditLocation}
+            onDeleteLocation={handleDeleteLocation}
+            onShare={handleShare}
+            isAdmin={isAdmin}
+          />
 
           <TaskForm
             newTask={newTask}
@@ -689,6 +701,7 @@ export default function TodoPage() {
             isAdmin={isAdmin}
             appId={appId}
             selectedLocation={selectedLocation}
+            currentUser={currentUser} // Passing user for Comments identity
           />
         </div>
         <Footer />

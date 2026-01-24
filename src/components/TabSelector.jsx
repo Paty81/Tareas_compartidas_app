@@ -111,8 +111,13 @@ const TabSelector = ({
 
   const handleAddLocation = () => {
     if (newLocationName.trim()) {
+      // Generate ID: "name-random" (Secure but Readable)
+      // e.g. "hogar-a1b2c"
+      const slug = newLocationName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const randomSuffix = Math.random().toString(36).substring(2, 7); // 5 chars is enough for collision avoidance in small groups
+      
       onAddLocation({
-        id: newLocationName.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substr(2, 5),
+        id: `${slug}-${randomSuffix}`,
         name: newLocationName,
         icon: selectedIcon,
       });

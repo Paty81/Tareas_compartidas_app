@@ -16,7 +16,7 @@ const priorityOptions = [
 // Wait, I need to check imports in TaskItem. Step 652 shows `Trash2` etc. `MessageCircle` is NOT imported.
 // I will do two edits. One for imports, one for logic.
 
-const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, selectedLocation }) => {
+const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, selectedLocation, currentUser }) => {
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
   
   // Comments State
@@ -60,7 +60,7 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, sel
       const commentData = {
           text: newComment.trim(),
           createdAt: Date.now(),
-          author: "Anónimo" // We don't have user prop here? We only have `isAdmin`.
+          author: currentUser ? currentUser.alias : "Anónimo"
           // Ideally pass `currentUser` or `userAlias` to TaskItem.
           // For now, let's just say "Usuario". 
           // Or better: Pass `userAlias` from TaskList -> TodoPage.
