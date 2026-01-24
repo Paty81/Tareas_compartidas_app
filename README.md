@@ -143,7 +143,15 @@ tareas-compartidas-app/
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)** license.
+
+### Summary:
+
+- **✅ You CAN:** Share, copy, adapt, and improve the code.
+- **❌ You CANNOT:** Use this project for commercial purposes (make money with it) without explicit permission.
+- **⚠️ You MUST:** Give credit to the original author (@Paty81) and license your new creations under the same terms.
+
+For the full legal text, see the [LICENSE](LICENSE) file.
 
 ---
 
