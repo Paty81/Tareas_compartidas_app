@@ -637,32 +637,20 @@ export default function TodoPage() {
             onOpenNotifications={toggleNotifications}
             notificationsActive={areNotificationsActive && notificationPermission === 'granted'}
             onShare={handleShare}
-            listName={locations.find(l => l.id === selectedLocation)?.name}
+            listName={locations.find(l => l.id === selectedLocation)?.name || (() => {
+                 if (selectedLocation && selectedLocation.includes('-')) {
+                    const parts = selectedLocation.split('-');
+                    // Si el ultimo es corto (random), quitamos.
+                    // E.g. hogar-abcde -> Hogar
+                    // Pero si es "mi-lista-abcde" -> Mi lista
+                    const namePart = parts.slice(0, -1).join(' ');
+                    if (namePart) return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+                 }
+                 return selectedLocation;
+            })()}
           />
 
-          {/* Security Warning Banner */}
-          {isAdmin && (selectedLocation === 'hogar' || selectedLocation === 'trabajo' || selectedLocation === 'personal') && (
-              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 m-4 mb-0 flex items-center justify-between gap-4 animate-in slide-in-from-top-2">
-                  <div className="flex items-start gap-3">
-                      <div className="bg-amber-100 p-2 rounded-full text-amber-600 mt-1">
-                          <AlertTriangle size={20} /> 
-                      </div>
-                      <div>
-                          <h3 className="font-bold text-amber-800 text-sm">Esta lista no es segura</h3>
-                          <p className="text-amber-700 text-xs mt-1">
-                              La dirección "{selectedLocation}" es pública y fácil de adivinar. 
-                              Cualquiera podría encontrarla.
-                          </p>
-                      </div>
-                  </div>
-                  <button 
-                      onClick={handleMigrateList}
-                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm whitespace-nowrap transition-colors"
-                  >
-                      🛡️ Proteger ahora
-                  </button>
-              </div>
-          )}
+
           
           {/* ... (TabSelector & TaskForm) */}
 
