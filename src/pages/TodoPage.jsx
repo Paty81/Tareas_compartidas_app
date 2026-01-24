@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { AlertTriangle } from 'lucide-react';
 import { gun, user, appId } from '../config/db';
 import Header from '../components/Header';
 import TaskForm from '../components/TaskForm';
