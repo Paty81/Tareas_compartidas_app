@@ -1,33 +1,17 @@
-import React, { useState } from 'react';
-import { Plus, Calendar } from 'lucide-react';
-import DatePicker from './DatePicker';
+import { Plus, Calendar, Flag } from 'lucide-react';
 
-const TaskForm = ({ newTask, setNewTask, onAdd, loading, scheduledDate, setScheduledDate }) => {
+const TaskForm = ({ newTask, setNewTask, newPriority, setNewPriority, onAdd, loading, scheduledDate, setScheduledDate }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newTask.trim()) return;
-    onAdd(e);
-    setShowDatePicker(false);
-  };
+  // Priority options configuration
+  const priorities = [
+    { id: 'high', color: 'text-red-500', bg: 'bg-red-50', ring: 'ring-red-200', label: 'Alta' },
+    { id: 'medium', color: 'text-orange-500', bg: 'bg-orange-50', ring: 'ring-orange-200', label: 'Media' },
+    { id: 'low', color: 'text-blue-500', bg: 'bg-blue-50', ring: 'ring-blue-200', label: 'Baja' },
+    { id: 'none', color: 'text-slate-400', bg: 'bg-slate-50', ring: 'ring-slate-200', label: 'Normal' },
+  ];
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
-  const formatScheduledDate = (date) => {
-    if (!date) return null;
-    return new Date(date).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // ... (handleSubmit, handleKeyDown same)
 
   return (
     <div className="bg-white p-5 shadow-sm border-b border-slate-100 relative">
@@ -42,6 +26,26 @@ const TaskForm = ({ newTask, setNewTask, onAdd, loading, scheduledDate, setSched
             className="flex-grow px-4 py-3.5 rounded-xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white transition-all outline-none text-slate-800 placeholder:text-slate-400"
             disabled={loading}
           />
+          
+          {/* Priority Selector */}
+          <div className="flex gap-1 bg-slate-50 p-1 rounded-xl">
+            {priorities.map(p => (
+                <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setNewPriority(p.id)}
+                    className={`p-2.5 rounded-lg transition-all ${
+                        newPriority === p.id 
+                        ? `${p.bg} ${p.color} shadow-sm ring-1 ${p.ring}` 
+                        : 'text-slate-300 hover:bg-white hover:text-slate-400'
+                    }`}
+                    title={`Prioridad ${p.label}`}
+                >
+                    <Flag size={20} className={newPriority === p.id ? "fill-current" : ""} />
+                </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={() => setShowDatePicker(!showDatePicker)}

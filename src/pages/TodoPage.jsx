@@ -31,7 +31,21 @@ export default function TodoPage() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
   const [scheduledDate, setScheduledDate] = useState(null);
+  const [newPriority, setNewPriority] = useState('none');
   const [loading, setLoading] = useState(true);
+
+  // ...
+
+          <TaskForm
+            newTask={newTask}
+            setNewTask={setNewTask}
+            newPriority={newPriority}
+            setNewPriority={setNewPriority}
+            onAdd={handleAddTask}
+            loading={loading}
+            scheduledDate={scheduledDate}
+            setScheduledDate={setScheduledDate}
+          />
 
   // Main Notification State (Mute logic)
   const [areNotificationsActive, setAreNotificationsActive] = useState(() => {
@@ -343,7 +357,7 @@ export default function TodoPage() {
       authorId: currentUser.uid,
       authorName: currentUser.alias,
       scheduledDate: scheduledDate ? scheduledDate.getTime() : null,
-      priority: 'none'
+      priority: newPriority
     };
 
     // set() en Gun genera un ID único automáticamente
@@ -351,6 +365,7 @@ export default function TodoPage() {
 
     setNewTask("");
     setScheduledDate(null);
+    setNewPriority('none');
   };
 
   // Task Handlers
