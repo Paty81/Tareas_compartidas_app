@@ -352,9 +352,12 @@ export default function TodoPage() {
   const handleShare = () => {
     const currentLocation = locations.find(l => l.id === selectedLocation);
     const locationName = currentLocation?.name || selectedLocation;
-    const shareUrl = `${window.location.origin}/${selectedLocation}`;
+    // Construimos la URL con hash para asegurar compatibilidad (#/ubicacion)
+    const baseUrl = window.location.href.split('#')[0];
+    const shareUrl = `${baseUrl}#/${selectedLocation}`;
+    
     navigator.clipboard.writeText(shareUrl);
-    alert(`¡Enlace copiado!\n\nLista: ${locationName}\nURL: ${shareUrl}\n\nNota: Asegúrate de que los otros usuarios tengan configurado este servidor Gun o estén en la misma red local si es offline.`);
+    alert(`¡Enlace copiado!\n\nLista: ${locationName}\nURL: ${shareUrl}\n\nNota: Compatible con cualquier dispositivo.`);
   };
 
   const handleOpenNotifications = () => {
