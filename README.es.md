@@ -16,7 +16,9 @@ Una App Web Progresiva (PWA) **descentralizada** para crear y compartir listas d
 
 - ⛓️ **Descentralizada (P2P)** - Sin base de datos central ni dueño único de los datos.
 - ✅ **Sincronización en tiempo real** - Los cambios se propagan instantáneamente entre dispositivos conectados.
-- 📂 **Múltiples Listas** - Organiza tareas por categorías como "Hogar" o "Trabajo".
+- 📂 **Vista Unificada** - Los invitados ven todas las listas compartidas acumuladas en una sola vista.
+- 🛡️ **Segura por Defecto** - Las nuevas listas usan IDs híbridos aleatorios (`nombre-codigo`) para evitar accesos no deseados.
+- 💬 **Identidad Real** - Los comentarios muestran tu nombre de usuario, no "Anónimo".
 - 📅 **Fechas y Prioridades** - Establece fechas límite y marca tareas con prioridad Alta/Media/Baja.
 - 🔗 **Compartir fácilmente** - Comparte un enlace simple para invitar a otros a una lista específica.
 - 📱 **Instalable como App** - Soporte completo PWA para móviles y escritorio.

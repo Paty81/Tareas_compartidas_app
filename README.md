@@ -16,7 +16,9 @@ A **decentralized** Progressive Web App (PWA) for creating and sharing task list
 
 - ⛓️ **Decentralized (P2P)** - No central database unique to one owner.
 - ✅ **Real-time synchronization** - Changes propagate instantly across connected peers.
-- 📂 **Multiple Lists** - Organize tasks by categories like "Home" or "Work".
+- 📂 **Multiple Lists & Unified View** - Guests see all shared lists in one place.
+- 🛡️ **Secure by Default** - New lists use hybrid random IDs (`name-randomCode`) to prevent guessing.
+- 💬 **Identity in Comments** - Comments show your real user alias, not "Anonymous".
 - 📅 **Due Dates & Priorities** - Set deadlines and mark tasks as High/Medium/Low priority.
 - 🔗 **Easy sharing** - Share a simple URL to invite others to a specific list.
 - 📱 **Installable as App** - Full PWA support for mobile and desktop.
