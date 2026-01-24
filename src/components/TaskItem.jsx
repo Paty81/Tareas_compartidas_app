@@ -70,7 +70,16 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, sel
       setNewComment("");
   };
 
-  // ... (existing formatDate/Time helpers)
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    return new Date(timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
   
   const isScheduledForFuture = task.scheduledDate && new Date(task.scheduledDate) > new Date();
   const currentPriority = priorityOptions.find(p => p.id === task.priority) || priorityOptions[0];
