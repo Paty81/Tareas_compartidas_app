@@ -233,14 +233,6 @@ const TabSelector = ({
              Panel Admin
            </a>
         )}
-
-        <button
-          onClick={onShare}
-          className={`${isAdmin ? 'ml-2' : 'ml-auto'} flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white hover:bg-white/30 font-bold text-sm whitespace-nowrap transition-all`}
-        >
-          <Share2 size={16} />
-          Compartir
-        </button>
       </div>
 
       {/* Formulario EDITAR ubicación */}

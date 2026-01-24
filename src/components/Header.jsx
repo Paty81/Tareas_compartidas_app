@@ -1,7 +1,7 @@
 import React from 'react';
-import { Sparkles, LogOut, Bell, User } from 'lucide-react';
+import { Sparkles, LogOut, Bell, User, Share2 } from 'lucide-react';
 
-const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsActive }) => {
+const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsActive, onShare, listName }) => {
   
   const today = new Date();
   const options = { weekday: 'long', day: 'numeric', month: 'long' };
@@ -34,6 +34,14 @@ const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsAct
 
           <div className="flex gap-2">
             <button
+               onClick={onShare}
+               className="rounded-xl bg-white/20 p-2.5 transition-all hover:bg-white/30 active:scale-95"
+               title="Compartir esta lista"
+            >
+               <Share2 size={20} />
+            </button>
+
+            <button
               onClick={onOpenNotifications}
               className={`group relative rounded-xl p-2.5 transition-all active:scale-95 ${
                 notificationsActive 
@@ -65,8 +73,8 @@ const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsAct
 
         {/* Title Section */}
         <div className="rounded-2xl bg-white/10 p-6 backdrop-blur-sm">
-          <h1 className="text-center text-3xl font-black text-white drop-shadow-sm sm:text-4xl">
-            Lista Compartida
+          <h1 className="text-center text-3xl font-black text-white drop-shadow-sm sm:text-4xl capitalize">
+            {listName || 'Lista Compartida'}
           </h1>
           <div className="mt-2 flex items-center justify-center gap-2 text-sm font-medium text-indigo-100">
             <span className="flex h-2 w-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]" />

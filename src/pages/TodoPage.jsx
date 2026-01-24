@@ -551,9 +551,12 @@ export default function TodoPage() {
             onLogout={handleLogout}
             onOpenNotifications={toggleNotifications}
             notificationsActive={areNotificationsActive && notificationPermission === 'granted'}
+            onShare={handleShare}
+            listName={locations.find(l => l.id === selectedLocation)?.name}
           />
 
           
+            {(isAdmin || !listId) && (
             <TabSelector
               selectedLocation={selectedLocation}
               onLocationChange={(newId) => {
@@ -573,6 +576,7 @@ export default function TodoPage() {
               onShare={handleShare}
               isAdmin={isAdmin}
             />
+            )}
 
           <TaskForm
             newTask={newTask}
