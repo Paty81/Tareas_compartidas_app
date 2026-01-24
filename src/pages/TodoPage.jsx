@@ -39,17 +39,35 @@ export default function TodoPage() {
   });
 
   const toggleNotifications = () => {
-    if (Notification.permission !== 'granted') {
+    if (!('Notification' in window)) {
+      alert("Tu navegador no soporta notificaciones.");
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert("⚠️ Las notificaciones están bloqueadas.\n\nPara activarlas, debes ir a la Configuración de tu navegador (el candado 🔒 junto a la URL) y permitir las notificaciones para esta página.");
+      return;
+    }
+
+    if (Notification.permission === 'default') {
       Notification.requestPermission().then(res => {
         if (res === 'granted') {
            setAreNotificationsActive(true);
            localStorage.setItem('notificationsActive', 'true');
+           // Feedback inmediato
+           if ('vibrate' in navigator) navigator.vibrate(50);
+        } else {
+           alert("Has denegado las notificaciones. No recibirás avisos.");
         }
       });
-    } else {
+      return;
+    }
+
+    // Si ya están concedidas, conmutamos el estado "soft"
+    if (Notification.permission === 'granted') {
       const newState = !areNotificationsActive;
       setAreNotificationsActive(newState);
-      localStorage.setItem('notificationsActive', newState);
+      localStorage.setItem('notificationsActive', String(newState));
     }
   };
 
