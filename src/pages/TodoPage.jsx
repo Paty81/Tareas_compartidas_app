@@ -214,40 +214,32 @@ export default function TodoPage() {
   }, [isAdmin, currentUser]); // Dependencia currentUser para recargar al loguear
 
   // Efecto para "Descubrir" listas cuando visito un enlace compartido
+  // Persistence for Guests (Unified View & Multi-Tab Support)
   useEffect(() => {
-     if (isAdmin || !isSharedView || !currentUser) return;
+     if (isAdmin || !isSharedView || !currentUser || !listId) return;
+
+     // Parse listId (supports comma-separated "id1,id2,id3")
+     const incomingIds = listId.split(',').filter(id => id.trim().length > 0);
+     const primaryId = incomingIds[0];
      
-     // Leemos la lista global para obtener los metadatos correctos (nombre, icono)
+     // Update selected location to the first one if different
+     if (selectedLocation !== primaryId && incomingIds.length > 0) {
+         setSelectedLocation(primaryId);
+     }
+
      // Leemos la lista global para obtener los metadatos correctos (nombre, icono)
      gun.get(appId).get('config').get('locations').once((globalData) => {
           // Fallback inteligente: extraer nombre del ID si tiene formato "nombre-codigo"
           const extractName = (id) => {
               if (id.includes('-')) {
                   const parts = id.split('-');
-                  // Si el último trozo es corto (codigo), lo quitamos. Si no, dejamos todo.
-                  // Pero mi formato es nombre-codigo.
-                  // Vamos a tomar la parte ANTERIOR al último guión.
                   const namePart = parts.slice(0, -1).join(' '); 
                   if (namePart) return namePart.charAt(0).toUpperCase() + namePart.slice(1);
               }
               return id;
           };
 
-          let foundName = extractName(selectedLocation);
-          let foundIcon = 'pin';
-          
-          if (globalData && globalData.list) {
-              try {
-                  const allList = typeof globalData.list === 'string' ? JSON.parse(globalData.list) : globalData.list;
-                  const match = allList.find(l => l.id === selectedLocation);
-                  if (match) {
-                      foundName = match.name;
-                      foundIcon = match.icon;
-                  }
-              } catch(e) { console.error("Error finding name", e); }
-          }
-
-          // AHORA: Leemos las listas ACTUALES del usuario para hacer un merge seguro
+          // Leemos las listas ACTUALES del usuario para hacer un merge seguro
           user.get('my_shared_lists').once((userData) => {
               let currentList = [];
               if (userData) {
@@ -256,20 +248,40 @@ export default function TodoPage() {
                   } catch (e) { console.error("Error parsing user lists", e); }
               }
 
-              // Si ya la tengo, no hago nada
-              if (currentList.some(l => l.id === selectedLocation)) return;
+              let hasChanges = false;
+              let newList = [...currentList];
 
-              // Si no la tengo, la agrego preservando las anteriores
-              const newMyList = [...currentList, { id: selectedLocation, name: foundName, icon: foundIcon }];
-              
-              // Guardar en Gun (Source of Truth)
-              user.get('my_shared_lists').put(JSON.stringify(newMyList));
-              
-              // Actualizar estado local
-              setLocations(newMyList);
+              incomingIds.forEach(id => {
+                  if (!newList.some(l => l.id === id)) {
+                      // Attempt to find metadata in globalData, else fallback
+                      let foundName = extractName(id);
+                      let foundIcon = 'pin';
+
+                      if (globalData && globalData.list) {
+                          try {
+                              const globalList = typeof globalData.list === 'string' ? JSON.parse(globalData.list) : globalData.list;
+                              const match = globalList.find(l => l.id === id);
+                              if (match) {
+                                  foundName = match.name;
+                                  foundIcon = match.icon;
+                              }
+                          } catch(e) {}
+                      }
+                      
+                      newList.push({ id, name: foundName, icon: foundIcon });
+                      hasChanges = true;
+                  }
+              });
+
+              if (hasChanges) {
+                  // Guardar en Gun (Source of Truth)
+                  user.get('my_shared_lists').put(JSON.stringify(newList));
+                  // Actualizar estado local
+                  setLocations(newList);
+              }
           });
      });
-  }, [isSharedView, selectedLocation, isAdmin, currentUser]); // Quitamos 'locations' de dependencias para evitar loops o datos stale
+  }, [isSharedView, listId, isAdmin, currentUser]);
 
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
