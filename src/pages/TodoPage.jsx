@@ -256,8 +256,24 @@ export default function TodoPage() {
       loadedTasks.set(id, task);
       
       const tasksArray = Array.from(loadedTasks.values());
-      // Ordenar: Prioridad (si existe) y luego fecha
-      tasksArray.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const getPriorityWeight = (p) => {
+        switch(p) {
+          case 'high': return 3;
+          case 'medium': return 2;
+          case 'low': return 1;
+          default: return 0;
+        }
+      };
+
+      tasksArray.sort((a, b) => {
+        const priorityA = getPriorityWeight(a.priority);
+        const priorityB = getPriorityWeight(b.priority);
+        
+        if (priorityA !== priorityB) {
+          return priorityB - priorityA; // Mayor prioridad primero
+        }
+        return (b.createdAt || 0) - (a.createdAt || 0); // Más reciente primero
+      });
 
       setTasks(tasksArray);
       setLoading(false);
