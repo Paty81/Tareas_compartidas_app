@@ -431,10 +431,19 @@ export default function TodoPage() {
             notificationsActive={areNotificationsActive && Notification.permission === 'granted'}
           />
 
-          {isAdmin && !isSharedView ? (
+          
             <TabSelector
               selectedLocation={selectedLocation}
-              onLocationChange={setSelectedLocation}
+              onLocationChange={(newId) => {
+                // Navegación estilo SPA si estamos en shared link
+                if (newId === 'hogar') {
+                    window.location.hash = '#/';
+                    setSelectedLocation('hogar');
+                } else {
+                    window.location.hash = `#/${newId}`;
+                    setSelectedLocation(newId);
+                }
+              }}
               locations={locations}
               onAddLocation={handleAddLocation}
               onEditLocation={handleEditLocation}
@@ -442,16 +451,6 @@ export default function TodoPage() {
               onShare={handleShare}
               isAdmin={isAdmin}
             />
-          ) : (
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-indigo-100">
-              <div className="text-center">
-                <p className="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">Lista compartida</p>
-                <span className="font-black text-2xl capitalize text-indigo-900 drop-shadow-sm">
-                  {locations.find(l => l.id === selectedLocation)?.name || selectedLocation.replace(/-/g, ' ')}
-                </span>
-              </div>
-            </div>
-          )}
 
           <TaskForm
             newTask={newTask}
