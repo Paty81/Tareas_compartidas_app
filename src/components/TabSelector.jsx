@@ -233,18 +233,6 @@ const TabSelector = ({
 
         {/* Botón compartir - Siempre visible a la derecha */}
         
-        {/* Botón compartir Grupo - Visible si hay > 1 pestaña */}
-        {locations.length > 1 && onShareGroup && (
-           <button
-             onClick={onShareGroup}
-             className="ml-auto flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/20 text-white hover:bg-white/30 font-bold text-xs whitespace-nowrap transition-all border border-white/20"
-             title="Compartir todas las pestañas juntas"
-           >
-             <Share2 size={14} />
-             Todas ({locations.length})
-           </button>
-        )}
-
         {/* Botón Admin - Siempre visible a la derecha si es admin */}
         {isAdmin && (
            <a href="#/admin" className="ml-2 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-800 text-white hover:bg-violet-900 border border-violet-500/50 shadow-lg shadow-violet-900/50 font-bold text-sm whitespace-nowrap transition-all">

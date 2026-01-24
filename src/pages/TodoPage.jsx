@@ -649,6 +649,8 @@ export default function TodoPage() {
             onOpenNotifications={toggleNotifications}
             notificationsActive={areNotificationsActive && notificationPermission === 'granted'}
             onShare={handleShare}
+            onShareGroup={handleShareGroup}
+            totalTabs={locations.length}
             listName={locations.find(l => l.id === selectedLocation)?.name || (() => {
                  if (selectedLocation && selectedLocation.includes('-')) {
                     const parts = selectedLocation.split('-');

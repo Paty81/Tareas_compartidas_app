@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sparkles, LogOut, Bell, User, Share2 } from 'lucide-react';
 
-const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsActive, onShare, listName }) => {
+const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsActive, onShare, onShareGroup, totalTabs, listName }) => {
   
   const today = new Date();
   const options = { weekday: 'long', day: 'numeric', month: 'long' };
@@ -36,10 +36,22 @@ const Header = ({ loading, user, onLogout, onOpenNotifications, notificationsAct
             <button
                onClick={onShare}
                className="rounded-xl bg-white/20 p-2.5 transition-all hover:bg-white/30 active:scale-95"
-               title="Compartir esta lista"
+               title="Compartir SOLO esta lista"
             >
                <Share2 size={20} />
             </button>
+
+            {/* Share Group Button */}
+            {onShareGroup && totalTabs > 1 && (
+                <button
+                onClick={onShareGroup}
+                className="flex items-center gap-2 rounded-xl bg-green-500/20 p-2.5 font-bold text-white transition-all hover:bg-green-500/30 active:scale-95 border border-green-400/30"
+                title={`Compartir TODAS las pestañas (${totalTabs})`}
+                >
+                <Share2 size={20} />
+                <span className="text-xs">Todo</span>
+                </button>
+            )}
 
             <button
               onClick={onOpenNotifications}
