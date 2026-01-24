@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 import { gun, user, appId } from '../config/db';
 import Header from '../components/Header';
 import TaskForm from '../components/TaskForm';
@@ -31,6 +32,26 @@ export default function TodoPage() {
   const [newTask, setNewTask] = useState("");
   const [scheduledDate, setScheduledDate] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Main Notification State (Mute logic)
+  const [areNotificationsActive, setAreNotificationsActive] = useState(() => {
+    return localStorage.getItem('notificationsActive') !== 'false';
+  });
+
+  const toggleNotifications = () => {
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission().then(res => {
+        if (res === 'granted') {
+           setAreNotificationsActive(true);
+           localStorage.setItem('notificationsActive', 'true');
+        }
+      });
+    } else {
+      const newState = !areNotificationsActive;
+      setAreNotificationsActive(newState);
+      localStorage.setItem('notificationsActive', newState);
+    }
+  };
 
   // Locations state
   const defaultLocations = [
@@ -109,21 +130,26 @@ export default function TodoPage() {
       }
     });
     
-    // Inicializar si está vacío (solo admin)
+    // Inicializar solo si no hay datos previos
     if (isAdmin) {
-      locationsRef.put({ list: JSON.stringify(defaultLocations) });
+      locationsRef.once((data) => {
+        if (!data || !data.list) {
+           locationsRef.put({ list: JSON.stringify(defaultLocations) });
+        }
+      });
     }
   }, [isAdmin]);
 
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
+  // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
   const showNotification = useCallback((task) => {
-    if (Notification.permission === 'granted' && document.hidden) {
+    if (areNotificationsActive && Notification.permission === 'granted' && document.hidden) {
       new Notification('Nueva tarea', {
         body: `${task.authorName || 'Alguien'}: ${task.text}`,
         icon: '/icon-192.png'
       });
     }
-  }, []);
+  }, [areNotificationsActive]);
 
   // Cargar tareas - Gun.js
   useEffect(() => {
@@ -181,7 +207,11 @@ export default function TodoPage() {
         sub.off(); // Desuscribir
         clearTimeout(loadingTimeout);
     };
-  }, [currentUser, selectedLocation, showNotification]);
+    return () => {
+        sub.off(); // Desuscribir
+        clearTimeout(loadingTimeout);
+    };
+  }, [currentUser, selectedLocation, showNotification]); // Removed areNotificationsActive from dependency to avoid re-subscription loop logic if strictly not needed, but showNotification depends on it. Ideally showNotification ref update.
 
   // Auth Handlers
   const handleLogin = (username, password) => {
@@ -242,7 +272,18 @@ export default function TodoPage() {
     setScheduledDate(null);
   };
 
+  // Task Handlers
   const handleToggleTask = (task) => {
+    // Si la tarea se va a completar, lanzar confeti
+    if (!task.completed) {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#a855f7', '#ec4899'], // Colores del tema (Indigo, Purple, Pink)
+      });
+    }
+
     // Put partial update
     gun.get(appId).get('locations').get(selectedLocation).get('todos').get(task.id).put({
       completed: !task.completed
@@ -250,6 +291,14 @@ export default function TodoPage() {
   };
 
   const handleDeleteTask = (taskId) => {
+    // Confeti al eliminar (rojo/naranja para distinguir acción destructiva pero celebratoria)
+    confetti({
+      particleCount: 60,
+      spread: 55,
+      origin: { y: 0.6 },
+      colors: ['#ef4444', '#f97316', '#cbd5e1'], 
+    });
+
     if (!confirm("¿Eliminar permanentemente?")) return;
     // En Gun, poner null rompe el enlace
     gun.get(appId).get('locations').get(selectedLocation).get('todos').get(taskId).put(null);
@@ -280,10 +329,14 @@ export default function TodoPage() {
 
   const handleDeleteLocation = (locationId) => {
     if (!isAdmin) return;
-    if (locationId === 'hogar' || locationId === 'trabajo') return;
+    // Permitemos borrar cualquier lista, incluso las originales
     const newLocations = locations.filter(l => l.id !== locationId);
     setLocations(newLocations);
-    if (selectedLocation === locationId) setSelectedLocation('hogar');
+    
+    // Si borramos la actual, ir a la primera disponible o 'hogar' como fallback (aunque no exista, para no romper)
+    if (selectedLocation === locationId) {
+        setSelectedLocation(newLocations.length > 0 ? newLocations[0].id : 'hogar');
+    }
     saveLocationsToGun(newLocations);
   };
 
@@ -340,14 +393,15 @@ export default function TodoPage() {
 
   // Main UI
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans">
-      <div className="max-w-2xl mx-auto">
-        <div className="shadow-2xl rounded-3xl bg-white overflow-hidden">
+    <div className="min-h-screen p-4 md:p-8 font-sans transition-colors duration-500">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/40">
           <Header
             loading={loading}
-            user={{...currentUser, email: currentUser.alias }} // Compatibilidad con componentes visuales
+            user={{...currentUser, email: currentUser.alias }} 
             onLogout={handleLogout}
-            onOpenNotifications={handleOpenNotifications}
+            onOpenNotifications={toggleNotifications}
+            notificationsActive={areNotificationsActive && Notification.permission === 'granted'}
           />
 
           {isAdmin && !isSharedView ? (
@@ -362,10 +416,10 @@ export default function TodoPage() {
               isAdmin={isAdmin}
             />
           ) : (
-            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-6">
-              <div className="text-center text-white">
-                <p className="text-white/70 text-xs mb-1">Lista compartida</p>
-                <span className="font-bold text-xl capitalize">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-indigo-100">
+              <div className="text-center">
+                <p className="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">Lista compartida</p>
+                <span className="font-black text-2xl capitalize text-indigo-900 drop-shadow-sm">
                   {locations.find(l => l.id === selectedLocation)?.name || selectedLocation.replace(/-/g, ' ')}
                 </span>
               </div>
