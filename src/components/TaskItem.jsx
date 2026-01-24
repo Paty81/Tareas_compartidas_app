@@ -73,7 +73,7 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, sel
   // ... (existing formatDate/Time helpers)
 
   return (
-    <div className={`glass-card group flex flex-col rounded-2xl p-4 transition-all hover:-translate-y-1 ${task.completed ? 'opacity-50' : ''}`}>
+    <div className={`glass-card group flex flex-col rounded-2xl p-4 transition-all hover:-translate-y-1 ${task.completed ? 'bg-slate-50/60' : ''}`}>
        <div className="flex items-start gap-4">
           {/* ... Checkbox & Content & Actions (Original Top Row) ... */}
           {/* I will replicate the original JSX structure mostly but wrap it or append comment section */}
