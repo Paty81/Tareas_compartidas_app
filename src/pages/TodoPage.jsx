@@ -350,6 +350,12 @@ export default function TodoPage() {
   };
 
   const handleShare = () => {
+    // Verificar si estamos en localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      alert("⚠️ ¡CUIDADO! \n\nEstás en modo de prueba (localhost). Si envías este enlace, Nadie podrá abrirlo porque apunta a TU ordenador.\n\nPara compartir, debes abrir la página web que has publicado (ej. tu-app.vercel.app o github.io) y compartir el enlace desde allí.");
+      return;
+    }
+
     const currentLocation = locations.find(l => l.id === selectedLocation);
     const locationName = currentLocation?.name || selectedLocation;
     // Construimos la URL con hash para asegurar compatibilidad (#/ubicacion)
