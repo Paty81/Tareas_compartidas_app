@@ -2,7 +2,27 @@ import React from 'react';
 import { ClipboardList, Loader2 } from 'lucide-react';
 import TaskItem from './TaskItem';
 
-const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin }) => {
+const TaskList = ({ tasks, loading, onToggle, onDelete, onSetPriority, isAdmin, appId, selectedLocation }) => {
+
+// ... (inside map)
+
+                        {group.tasks.map((task, idx) => (
+                            <div key={task.id} className="flex gap-4 relative z-10 group border-b border-slate-300 last:border-0 hover:bg-white/50 transition-colors">
+                                {/* ... col 1 & 2 ... */}
+                                {/* 3. Task Card Column */}
+                                <div className="flex-grow py-2 pr-2 min-w-0">
+                                    <TaskItem
+                                        task={task}
+                                        onToggle={onToggle}
+                                        onDelete={onDelete}
+                                        onSetPriority={onSetPriority}
+                                        isAdmin={isAdmin}
+                                        appId={appId}
+                                        selectedLocation={selectedLocation}
+                                    />
+                                </div>
+                            </div>
+                        ))}
   if (loading) {
     return (
       <div className="bg-slate-50/50 min-h-[300px] flex flex-col items-center justify-center">

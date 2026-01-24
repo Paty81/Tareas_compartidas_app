@@ -596,6 +596,8 @@ export default function TodoPage() {
             onDelete={handleDeleteTask}
             onSetPriority={handleSetPriority}
             isAdmin={isAdmin}
+            appId={appId}
+            selectedLocation={selectedLocation}
           />
         </div>
         <Footer />
