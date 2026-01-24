@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Plus, Calendar, Flag } from 'lucide-react';
 
 const TaskForm = ({ newTask, setNewTask, newPriority, setNewPriority, onAdd, loading, scheduledDate, setScheduledDate }) => {
@@ -11,60 +12,83 @@ const TaskForm = ({ newTask, setNewTask, newPriority, setNewPriority, onAdd, loa
     { id: 'none', color: 'text-slate-400', bg: 'bg-slate-50', ring: 'ring-slate-200', label: 'Normal' },
   ];
 
-  // ... (handleSubmit, handleKeyDown same)
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (newTask.trim()) {
+      onAdd(e);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit(e);
+    }
+  };
 
   return (
     <div className="bg-white p-5 shadow-sm border-b border-slate-100 relative">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="¿Qué necesitas hacer?"
-            className="flex-grow px-4 py-3.5 rounded-xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white transition-all outline-none text-slate-800 placeholder:text-slate-400"
+            className="w-full flex-grow px-4 py-3.5 rounded-xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white transition-all outline-none text-slate-800 placeholder:text-slate-400"
             disabled={loading}
           />
           
-          {/* Priority Selector */}
-          <div className="flex gap-1 bg-slate-50 p-1 rounded-xl">
-            {priorities.map(p => (
-                <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setNewPriority(p.id)}
-                    className={`p-2.5 rounded-lg transition-all ${
-                        newPriority === p.id 
-                        ? `${p.bg} ${p.color} shadow-sm ring-1 ${p.ring}` 
-                        : 'text-slate-300 hover:bg-white hover:text-slate-400'
-                    }`}
-                    title={`Prioridad ${p.label}`}
-                >
-                    <Flag size={20} className={newPriority === p.id ? "fill-current" : ""} />
-                </button>
-            ))}
-          </div>
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            {/* Priority Selector - Colorful & clear */}
+            <div className="flex gap-3">
+              {priorities.map(p => (
+                  <button
+                      key={p.id}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setNewPriority(p.id); }}
+                      className={`relative group flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all border-2 ${
+                          newPriority === p.id 
+                          ? `bg-white border-current ${p.color} scale-110 shadow-md ring-2 ring-offset-2 ring-indigo-50` 
+                          : 'bg-slate-50 border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm hover:scale-105'
+                      }`}
+                      title={`${p.label}`}
+                  >
+                      {/* Icon always colored */}
+                      {p.id === 'high' && <Flag size={18} className="text-red-500 fill-red-500" />}
+                      {p.id === 'medium' && <Flag size={18} className="text-orange-500 fill-orange-500" />}
+                      {p.id === 'low' && <Flag size={18} className="text-blue-500 fill-blue-500" />}
+                      {p.id === 'none' && <div className="w-4 h-4 rounded-full border-2 border-slate-300" />}
 
-          <button
-            type="button"
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            className={`p-3.5 rounded-xl transition-all shrink-0 ${
-              scheduledDate
-                ? 'bg-violet-100 text-violet-600 border-2 border-violet-200'
-                : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 border-2 border-transparent'
-            }`}
-            title="Programar tarea"
-          >
-            <Calendar size={22} />
-          </button>
-          <button
-            type="submit"
-            disabled={!newTask.trim() || loading}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-3.5 rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-200 shrink-0"
-          >
-            <Plus size={22} />
-          </button>
+                      {/* Label on hover (or selected) could be helpful, but tight space. 
+                          Let's trust the color + Title attribute. 
+                      */}
+                  </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className={`p-3.5 rounded-xl transition-all shrink-0 ${
+                  scheduledDate
+                    ? 'bg-violet-100 text-violet-600 border-2 border-violet-200'
+                    : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 border-2 border-transparent'
+                }`}
+                title="Programar tarea"
+              >
+                <Calendar size={22} />
+              </button>
+              <button
+                type="submit"
+                disabled={!newTask.trim() || loading}
+                className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-3.5 rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-200 shrink-0"
+              >
+                <Plus size={22} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {scheduledDate && (

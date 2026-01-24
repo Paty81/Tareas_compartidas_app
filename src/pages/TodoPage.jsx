@@ -36,21 +36,15 @@ export default function TodoPage() {
 
   // ...
 
-          <TaskForm
-            newTask={newTask}
-            setNewTask={setNewTask}
-            newPriority={newPriority}
-            setNewPriority={setNewPriority}
-            onAdd={handleAddTask}
-            loading={loading}
-            scheduledDate={scheduledDate}
-            setScheduledDate={setScheduledDate}
-          />
+
 
   // Main Notification State (Mute logic)
   const [areNotificationsActive, setAreNotificationsActive] = useState(() => {
     return localStorage.getItem('notificationsActive') !== 'false';
   });
+  const [notificationPermission, setNotificationPermission] = useState(
+    'Notification' in window ? Notification.permission : 'default'
+  );
 
   const toggleNotifications = () => {
     if (!('Notification' in window)) {
@@ -58,13 +52,14 @@ export default function TodoPage() {
       return;
     }
 
-    if (Notification.permission === 'denied') {
+    if (notificationPermission === 'denied') {
       alert("⚠️ Las notificaciones están bloqueadas.\n\nPara activarlas, debes ir a la Configuración de tu navegador (el candado 🔒 junto a la URL) y permitir las notificaciones para esta página.");
       return;
     }
 
-    if (Notification.permission === 'default') {
+    if (notificationPermission === 'default') {
       Notification.requestPermission().then(res => {
+        setNotificationPermission(res);
         if (res === 'granted') {
            setAreNotificationsActive(true);
            localStorage.setItem('notificationsActive', 'true');
@@ -78,7 +73,7 @@ export default function TodoPage() {
     }
 
     // Si ya están concedidas, conmutamos el estado "soft"
-    if (Notification.permission === 'granted') {
+    if (notificationPermission === 'granted') {
       const newState = !areNotificationsActive;
       setAreNotificationsActive(newState);
       localStorage.setItem('notificationsActive', String(newState));
@@ -117,15 +112,44 @@ export default function TodoPage() {
 
   // Auth listener
   useEffect(() => {
+    // Check immediate session (Fix navigation hang)
+    if (user.is) {
+       const pub = user.is.pub;
+       const alias = user.is.alias;
+       setCurrentUser({ uid: pub, alias, displayName: alias });
+       setAuthLoading(false);
+    }
+
     // Gun recupera sesión automáticamente si localStorage: true
     gun.on('auth', async () => {
       if (user.is) {
+        const pub = user.is.pub;
+        const alias = user.is.alias;
+
+        // Guardamos user info localmente inmediatamente para desbloquear la UI
         setCurrentUser({ 
-          uid: user.is.pub, 
-          alias: user.is.alias,
-          displayName: user.is.alias // Usamos alias como display name por defecto
+          uid: pub, 
+          alias: alias,
+          displayName: alias 
         });
         setAuthLoading(false);
+
+        // 1. REGISTRO DE USUARIO (Background)
+        gun.get(appId).get('users').get(pub).put({
+            alias: alias,
+            pub: pub,
+            lastLogin: Date.now()
+        });
+
+        // 2. CHEQUEO DE BAN (Background - Si está baneado, lo echamos después)
+        gun.get(appId).get('banned_users').get(pub).once((isBanned) => {
+            if (isBanned) {
+                alert("🚫 TU CUENTA HA SIDO BLOQUEADA POR EL ADMINISTRADOR.");
+                user.leave();
+                setCurrentUser(null);
+                window.location.reload();
+            }
+        });
       }
     });
 
@@ -173,10 +197,12 @@ export default function TodoPage() {
       myListsRef.on((data) => {
         if (data) {
           try {
-             const list = typeof data === 'string' ? JSON.parse(data) : (data.list ? JSON.parse(data.list) : []);
+             const parsed = typeof data === 'string' ? JSON.parse(data) : (data.list ? JSON.parse(data.list) : []);
+             const list = Array.isArray(parsed) ? parsed : [];
              setLocations(list);
           } catch (e) {
              console.error("Error loading my lists", e);
+             setLocations([]);
           }
         } else {
              setLocations([]);
@@ -189,35 +215,45 @@ export default function TodoPage() {
   useEffect(() => {
      if (isAdmin || !isSharedView || !currentUser) return;
      
-     // Si soy usuario y visito una URL compartida (selectedLocation), la añado a mis listas
-     const alreadyHasIt = locations.some(l => l.id === selectedLocation);
-     if (!alreadyHasIt) {
-        // Necesitamos saber el NOMBRE de la lista. 
-        // Leemos la lista global UNA VEZ para encontrar el nombre correcto
-        gun.get(appId).get('config').get('locations').once((data) => {
-             let foundName = selectedLocation;
-             let foundIcon = 'pin';
-             
-             if (data && data.list) {
-                 try {
-                     const allList = typeof data.list === 'string' ? JSON.parse(data.list) : data.list;
-                     const match = allList.find(l => l.id === selectedLocation);
-                     if (match) {
-                         foundName = match.name;
-                         foundIcon = match.icon;
-                     }
-                 } catch(e) { console.error("Error finding name", e); }
-             }
+     // Leemos la lista global para obtener los metadatos correctos (nombre, icono)
+     gun.get(appId).get('config').get('locations').once((globalData) => {
+          let foundName = selectedLocation;
+          let foundIcon = 'pin';
+          
+          if (globalData && globalData.list) {
+              try {
+                  const allList = typeof globalData.list === 'string' ? JSON.parse(globalData.list) : globalData.list;
+                  const match = allList.find(l => l.id === selectedLocation);
+                  if (match) {
+                      foundName = match.name;
+                      foundIcon = match.icon;
+                  }
+              } catch(e) { console.error("Error finding name", e); }
+          }
 
-             const newMyList = [...locations, { id: selectedLocation, name: foundName, icon: foundIcon }];
-             // Guardar en mi perfil de usuario
-             user.get('my_shared_lists').put(JSON.stringify(newMyList)); 
-             
-             // Actualizar localmente para feedback inmediato
-             setLocations(newMyList);
-        });
-     }
-  }, [isSharedView, selectedLocation, isAdmin, currentUser, locations]);
+          // AHORA: Leemos las listas ACTUALES del usuario para hacer un merge seguro
+          user.get('my_shared_lists').once((userData) => {
+              let currentList = [];
+              if (userData) {
+                  try {
+                      currentList = typeof userData === 'string' ? JSON.parse(userData) : (userData.list ? JSON.parse(userData.list) : []);
+                  } catch (e) { console.error("Error parsing user lists", e); }
+              }
+
+              // Si ya la tengo, no hago nada
+              if (currentList.some(l => l.id === selectedLocation)) return;
+
+              // Si no la tengo, la agrego preservando las anteriores
+              const newMyList = [...currentList, { id: selectedLocation, name: foundName, icon: foundIcon }];
+              
+              // Guardar en Gun (Source of Truth)
+              user.get('my_shared_lists').put(JSON.stringify(newMyList));
+              
+              // Actualizar estado local
+              setLocations(newMyList);
+          });
+     });
+  }, [isSharedView, selectedLocation, isAdmin, currentUser]); // Quitamos 'locations' de dependencias para evitar loops o datos stale
 
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
   // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
@@ -272,6 +308,7 @@ export default function TodoPage() {
       const tasksArray = Array.from(loadedTasks.values());
       const getPriorityWeight = (p) => {
         switch(p) {
+          case 'urgent': return 4;
           case 'high': return 3;
           case 'medium': return 2;
           case 'low': return 1;
@@ -317,7 +354,14 @@ export default function TodoPage() {
         setAuthError(translateError(err));
         setAuthLoading(false);
       } else {
-        // Login exitoso, el listener 'auth' actualizará el estado
+        // Login exitoso
+        // Si por alguna razón el listener 'auth' no salta rápido, forzamos la comprobación
+        setTimeout(() => {
+            if (user.is) {
+                 // Si hay usuario pero seguía cargando, desbloqueamos
+                 setAuthLoading(false);
+            }
+        }, 1500);
       }
     });
   };
@@ -506,7 +550,7 @@ export default function TodoPage() {
             user={{...currentUser, email: currentUser.alias }} 
             onLogout={handleLogout}
             onOpenNotifications={toggleNotifications}
-            notificationsActive={areNotificationsActive && Notification.permission === 'granted'}
+            notificationsActive={areNotificationsActive && notificationPermission === 'granted'}
           />
 
           
@@ -533,6 +577,8 @@ export default function TodoPage() {
           <TaskForm
             newTask={newTask}
             setNewTask={setNewTask}
+            newPriority={newPriority}
+            setNewPriority={setNewPriority}
             onAdd={handleAddTask}
             loading={loading}
             scheduledDate={scheduledDate}

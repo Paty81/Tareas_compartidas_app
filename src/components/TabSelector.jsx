@@ -7,6 +7,7 @@ import {
   X,
   Check,
   Share2,
+  ShieldAlert,
   ShoppingCart,
   Heart,
   Star,
@@ -111,7 +112,7 @@ const TabSelector = ({
   const handleAddLocation = () => {
     if (newLocationName.trim()) {
       onAddLocation({
-        id: newLocationName.toLowerCase().replace(/\s+/g, '-'),
+        id: newLocationName.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substr(2, 5),
         name: newLocationName,
         icon: selectedIcon,
       });
@@ -225,9 +226,17 @@ const TabSelector = ({
         )}
 
         {/* Botón compartir - Siempre visible a la derecha */}
+        
+        {isAdmin && (
+           <a href="#/admin" className="ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-800 text-white hover:bg-violet-900 border border-violet-500/50 shadow-lg shadow-violet-900/50 font-bold text-sm whitespace-nowrap transition-all">
+             <ShieldAlert size={16} />
+             Panel Admin
+           </a>
+        )}
+
         <button
           onClick={onShare}
-          className="ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white hover:bg-white/30 font-bold text-sm whitespace-nowrap transition-all"
+          className={`${isAdmin ? 'ml-2' : 'ml-auto'} flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white hover:bg-white/30 font-bold text-sm whitespace-nowrap transition-all`}
         >
           <Share2 size={16} />
           Compartir

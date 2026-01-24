@@ -84,9 +84,12 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin }) => {
             {task.authorName || 'Anónimo'}
           </span>
 
-          {/* Date Info */}
-          <span className="flex items-center gap-1 text-slate-400">
-             • {formatDate(task.createdAt)}
+          {/* Date Info - Agenda Style */}
+          <span className="flex items-center gap-1 text-slate-500 bg-slate-100 rounded-md px-1.5 py-0.5" title={`Creado el ${formatDate(task.createdAt)} a las ${formatTime(task.createdAt)}`}>
+             <Clock size={10} />
+             {formatTime(task.createdAt)}
+             <span className="text-slate-300">|</span>
+             {formatDate(task.createdAt)}
           </span>
 
           {/* Scheduled Date */}
@@ -105,8 +108,8 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin }) => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Action Buttons - Always visible */}
+      <div className="flex shrink-0 gap-1 opacity-100 transition-opacity">
         {isAdmin && !task.completed && (
           <div className="relative">
             <button
