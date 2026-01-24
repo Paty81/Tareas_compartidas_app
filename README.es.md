@@ -1,10 +1,10 @@
-# 📝 Lista Compartida - Tareas en Tiempo Real
+# 📝 Lista Compartida - Tareas Descentralizadas
 
-[![Made with React](https://img.shields.io/badge/Made%20with-React-61DAFB?style=flat&logo=react)](https://react.dev/)
-[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Hecho con React](https://img.shields.io/badge/Made%20with-React-61DAFB?style=flat&logo=react)](https://react.dev/)
+[![GunDB](https://img.shields.io/badge/GunDB-Descentralizado-ff0055?style=flat&logo=gun&logoColor=white)](https://gun.eco/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-Una aplicación web progresiva (PWA) para crear y compartir listas de tareas en tiempo real. Perfecta para familias, equipos y grupos que necesitan coordinar tareas de forma colaborativa.
+Una App Web Progresiva (PWA) **descentralizada** para crear y compartir listas de tareas en tiempo real. Construida con **GunDB**, funciona puramente P2P (Peer-to-Peer), lo que significa que tus datos viven en tu dispositivo y se sincronizan directamente con otros sin servidores centrales.
 
 **Hecha por [Paty81](https://github.com/Paty81)** con 💜
 
@@ -14,14 +14,14 @@ Una aplicación web progresiva (PWA) para crear y compartir listas de tareas en 
 
 ## ✨ Características
 
-- ✅ **Sincronización en tiempo real** - Los cambios se ven instantáneamente en todos los dispositivos
-- 🔗 **Compartir fácilmente** - Copia y comparte el enlace para colaborar
-- 📱 **Instalable como App** - Funciona como una aplicación nativa en móviles
-- 🌐 **Sin necesidad de registro** - Empieza a usar inmediatamente
-- 🎨 **Interfaz moderna y limpia** - Diseño intuitivo con Tailwind CSS
-- ☁️ **Guardado automático en la nube** - Nunca pierdas tus tareas
-- 🔄 **Marca/desmarca tareas** - Mantén el seguimiento de lo completado
-- 🗑️ **Elimina tareas** - Gestión completa de tu lista
+- ⛓️ **Descentralizada (P2P)** - Sin base de datos central ni dueño único de los datos.
+- ✅ **Sincronización en tiempo real** - Los cambios se propagan instantáneamente entre dispositivos conectados.
+- 📂 **Múltiples Listas** - Organiza tareas por categorías como "Hogar" o "Trabajo".
+- 📅 **Fechas y Prioridades** - Establece fechas límite y marca tareas con prioridad Alta/Media/Baja.
+- 🔗 **Compartir fácilmente** - Comparte un enlace simple para invitar a otros a una lista específica.
+- 📱 **Instalable como App** - Soporte completo PWA para móviles y escritorio.
+- 🔒 **Privacidad** - Sin registro de correos (Autenticación anónima vía SEA).
+- 🎨 **Interfaz Moderna** - Diseño limpio con Tailwind CSS.
 
 ---
 
@@ -31,7 +31,6 @@ Una aplicación web progresiva (PWA) para crear y compartir listas de tareas en 
 
 - Node.js (versión 18 o superior)
 - npm o yarn
-- Una cuenta de Firebase (gratuita)
 
 ### Paso 1: Clonar el Repositorio
 
@@ -46,56 +45,15 @@ cd tareas-compartidas-app
 npm install
 ```
 
-### Paso 3: Configurar Firebase
-
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Crea un nuevo proyecto (o usa uno existente)
-3. Registra una aplicación web
-4. Copia las credenciales de configuración
-5. Abre el archivo `src/config/firebase.js`
-6. Reemplaza las credenciales con las tuyas:
-
-```javascript
-const firebaseConfig = {
-  apiKey: "TU_API_KEY_AQUI",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
-};
-```
-
-### Paso 4: Configurar Firestore
-
-1. En Firebase Console, ve a **Firestore Database**
-2. Crea una base de datos en modo de prueba
-3. Configura las reglas de seguridad (ejemplo básico):
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /public_lists/{listId}/todos/{todoId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-### Paso 5: Habilitar Autenticación Anónima
-
-1. Ve a **Authentication** en Firebase Console
-2. Haz clic en **Sign-in method**
-3. Habilita **Anonymous**
-
-### Paso 6: Ejecutar la Aplicación
+### Paso 3: Ejecutar la Aplicación
 
 ```bash
 npm run dev
 ```
 
 La aplicación estará disponible en `http://localhost:5173`
+
+> **Nota:** Por defecto, la app se conecta a peers relay públicos para facilitar la conexión entre usuarios que no están en la misma red local.
 
 ---
 
@@ -105,7 +63,7 @@ La aplicación estará disponible en `http://localhost:5173`
 npm run build
 ```
 
-Los archivos optimizados estarán en la carpeta `dist/`
+Los archivos optimizados estarán en la carpeta `dist/`.
 
 Para previsualizar la build de producción:
 
@@ -122,19 +80,17 @@ tareas-compartidas-app/
 ├── public/              # Archivos estáticos
 ├── src/
 │   ├── components/      # Componentes React
-│   │   ├── Header.jsx
-│   │   ├── TaskForm.jsx
-│   │   ├── TaskItem.jsx
-│   │   ├── TaskList.jsx
-│   │   ├── InstallModal.jsx
-│   │   └── Footer.jsx
+│   │   ├── AuthModal.jsx    # Autenticación de usuario (SEA)
+│   │   ├── TaskForm.jsx     # Input para nuevas tareas
+│   │   ├── TaskList.jsx     # Lógica de visualización de lista
+│   │   ├── TabSelector.jsx  # Selector de Ubicación/Categoría
+│   │   └── ...
 │   ├── config/
-│   │   └── firebase.js  # Configuración de Firebase
+│   │   └── db.js        # Configuración e inicialización de GunDB
 │   ├── pages/
-│   │   └── TodoPage.jsx # Página principal
+│   │   └── TodoPage.jsx # Lógica principal de la aplicación
 │   ├── App.jsx          # Componente raíz
-│   ├── main.jsx         # Punto de entrada
-│   └── index.css        # Estilos globales
+│   └── main.jsx         # Punto de entrada
 ├── index.html
 ├── package.json
 ├── vite.config.js
@@ -146,64 +102,42 @@ tareas-compartidas-app/
 ## 🔧 Tecnologías Utilizadas
 
 - **React 18** - Librería de UI
-- **Vite** - Build tool y dev server
-- **Firebase** - Backend (Firestore + Auth)
-- **Tailwind CSS** - Framework de CSS
-- **Lucide React** - Iconos modernos
-- **PWA** - Progressive Web App
-
----
-
-## 📱 Instalar como App
-
-### En iPhone (Safari)
-1. Abre la app en Safari
-2. Toca el botón **Compartir** (cuadro con flecha hacia arriba)
-3. Desplázate y selecciona **Añadir a pantalla de inicio**
-4. Toca **Añadir**
-
-### En Android (Chrome)
-1. Abre la app en Chrome
-2. Toca el menú (3 puntos verticales)
-3. Selecciona **Instalar aplicación** o **Añadir a pantalla de inicio**
-4. Confirma la instalación
+- **Vite** - Herramienta de compilación
+- **GunDB** - Base de datos de grafos descentralizada
+- **Tailwind CSS** - Estilos
+- **Lucide React** - Iconos
+- **PWA** - Capacidades de Progressive Web App
 
 ---
 
 ## 🤝 Cómo Usar
 
-1. **Añadir Tarea**: Escribe en el campo de texto y presiona el botón `+`
-2. **Marcar Completada**: Haz clic en el círculo a la izquierda de la tarea
-3. **Eliminar Tarea**: Haz clic en el icono de papelera roja
-4. **Compartir Lista**: Haz clic en "Copiar Enlace" y envíalo a quien quieras
-5. **Instalar App**: Haz clic en "Instalar App" y sigue las instrucciones
+1. **Crear/Entrar**: Elige un usuario y contraseña. Esto genera tus claves criptográficas localmente.
+2. **Crear Listas**: Usa las pestañas para cambiar entre listas (ej. "Hogar", "Trabajo") o crea nuevas (solo Admin).
+3. **Añadir Tarea**: Escribe tu tarea, opcionalmente elige una fecha, y pulsa Enter.
+4. **Compartir**: Haz clic en el botón "Compartir" para copiar el enlace de la lista actual. Envialo a tu familia/equipo.
+   - _Nota_: Necesitan abrir ese enlace para ver esa lista específica.
 
 ---
 
-## 🔒 Seguridad y Privacidad
+## 🔒 Seguridad y Persistencia
 
-- La autenticación es anónima (no se requieren datos personales)
-- Cada usuario recibe un ID único temporal
-- Las tareas se almacenan en una colección compartida
-- **Importante**: Cualquiera con el enlace puede ver y editar la lista
+- **Autenticación**: Usa SEA de Gun (Security, Encryption, Authorization). Sin correos, solo pares de claves.
+- **Persistencia de Datos**: Los datos se guardan en el `localStorage` de tu navegador y se sincronizan con cualquier peer conectado.
 
 ---
 
 ## 🐛 Solución de Problemas
 
 ### Las tareas no se sincronizan
-- Verifica que Firebase esté correctamente configurado
-- Revisa la consola del navegador para errores
-- Asegúrate de tener conexión a internet
 
-### Error de autenticación
-- Verifica que la autenticación anónima esté habilitada en Firebase
-- Comprueba que las credenciales en `firebase.js` sean correctas
+- Asegúrate de que ambos dispositivos estén online.
+- Si estáis en redes diferentes, puede tardar un momento en encontrar un relay peer común.
+- Recarga la página para reconectar a los peers.
 
-### No se puede instalar como PWA
-- Asegúrate de estar usando HTTPS (o localhost)
-- Verifica que tu navegador soporte PWAs
-- Intenta desde el menú de tu navegador
+### "Login" sigue apareciendo
+
+- Tu sesión de usuario se guarda en el navegador. Si borras cookies/almacenamiento, necesitarás entrar de nuevo con el **mismo** usuario y contraseña para recuperar tus derechos de admin (si lo eras).
 
 ---
 
@@ -216,22 +150,8 @@ Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 ## 👩‍💻 Autora
 
 **Paty81**
+
 - GitHub: [@Paty81](https://github.com/Paty81)
-
----
-
-## 🌟 ¿Te gusta el proyecto?
-
-Si encuentras útil esta aplicación:
-- Dale una ⭐ en GitHub
-- Compártela con tus amigos
-- Contribuye con mejoras
-
----
-
-## 📧 Contacto
-
-Si tienes preguntas, sugerencias o encuentras algún bug, no dudes en abrir un [issue](https://github.com/Paty81/tareas-compartidas-app/issues).
 
 ---
 

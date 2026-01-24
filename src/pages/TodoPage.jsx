@@ -1,22 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { auth, db, appId, requestFCMToken, onForegroundMessage } from '../config/firebase';
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-  signOut,
-  onAuthStateChanged
-} from "firebase/auth";
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  setDoc
-} from "firebase/firestore";
-
+import { useParams } from 'react-router-dom';
+import { gun, user, appId } from '../config/db';
 import Header from '../components/Header';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
@@ -24,13 +8,21 @@ import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
 import TabSelector from '../components/TabSelector';
 
-// USUARIO DEL ADMINISTRADOR (tu nombre de usuario)
-const ADMIN_USERNAME = "paty";
-const ADMIN_EMAIL = `${ADMIN_USERNAME}@tareas.app`;
+// USUARIO DEL ADMINISTRADOR (tu alias público)
+const ADMIN_ALIAS = "Paty";
+
+const translateError = (err) => {
+  if (!err) return '';
+  if (err.includes('User already created')) return '¡El usuario ya existe!';
+  if (err.includes('Wrong user or password')) return '¡Usuario o contraseña incorrectos!';
+  if (err.includes('User does not exist')) return '¡El usuario no existe!';
+  if (err.includes('Password too short')) return '¡La contraseña es muy corta! (Mínimo 8 caracteres)';
+  return err; // Retornar original si no hay traducción
+};
 
 export default function TodoPage() {
   // Auth state
-  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
 
@@ -40,372 +32,298 @@ export default function TodoPage() {
   const [scheduledDate, setScheduledDate] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Locations state - guardadas en Firebase para persistencia
+  // Locations state
   const defaultLocations = [
     { id: 'hogar', name: 'Hogar', icon: 'home' },
     { id: 'trabajo', name: 'Trabajo', icon: 'briefcase' },
   ];
   const [locations, setLocations] = useState(defaultLocations);
 
-  // Detectar ubicación desde URL
-  const getLocationFromURL = () => {
-    const path = window.location.pathname.slice(1); // quitar /
-    if (path && path !== '') return path;
-    return null;
-  };
+  const { listId } = useParams();
+  
+  // Si hay parametro en URL, esa es la ubicación seleccionada
+  // Si no, usamos el estado interno (por defecto 'hogar')
+  const [internalLocation, setInternalLocation] = useState('hogar');
+  
+  useEffect(() => {
+    if (listId) {
+        setInternalLocation(listId);
+    }
+  }, [listId]);
 
-  const [urlLocation] = useState(getLocationFromURL());
-  const [selectedLocation, setSelectedLocation] = useState(urlLocation || 'hogar');
+  const selectedLocation = listId || internalLocation;
+  const setSelectedLocation = setInternalLocation; // Alias para compatibilidad con código existente
 
-  // Si viene de una URL específica, es vista compartida (bloquear navegación)
-  const isSharedView = urlLocation !== null;
-
-  // Notifications
-  const [notificationPermission, setNotificationPermission] = useState('default');
+  // Si viene de una URL específica, es vista compartida
+  const isSharedView = !!listId;
 
   // Check if current user is admin
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  // En Gun.js comparamos el alias, aunque lo ideal sería pub key para mayor seguridad.
+  // Por simplicidad en esta migración usamos alias.
+  const isAdmin = currentUser?.alias === ADMIN_ALIAS;
 
-  // Check auth state on mount
+  // Auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
-      if (!currentUser) {
+    // Gun recupera sesión automáticamente si localStorage: true
+    gun.on('auth', async () => {
+      if (user.is) {
+        setCurrentUser({ 
+          uid: user.is.pub, 
+          alias: user.is.alias,
+          displayName: user.is.alias // Usamos alias como display name por defecto
+        });
+        setAuthLoading(false);
+      }
+    });
+
+    // Timeout de seguridad por si no hay sesión guardada
+    setTimeout(() => {
+      if (!user.is) {
+        setAuthLoading(false);
         setLoading(false);
       }
-    });
-    return () => unsubscribe();
+    }, 1000);
   }, []);
 
-  // Cargar locations desde Firebase
+  // Cargar locations
   useEffect(() => {
-    const locationsDocRef = doc(db, 'public_lists', appId, 'config', 'locations');
-
-    const unsubscribe = onSnapshot(locationsDocRef, (docSnap) => {
-      if (docSnap.exists() && docSnap.data().list) {
-        setLocations(docSnap.data().list);
-      }
-    }, (error) => {
-      console.error("Error loading locations:", error);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Configurar FCM y notificaciones push
-  useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
-
-    // Escuchar mensajes en primer plano
-    const unsubscribe = onForegroundMessage((payload) => {
-      console.log('Mensaje FCM en primer plano:', payload);
-      if (Notification.permission === 'granted') {
-        new Notification(payload.notification?.title || 'Nueva tarea', {
-          body: payload.notification?.body || 'Tienes una actualización',
-          icon: '/icon-192.png'
-        });
+    const locationsRef = gun.get(appId).get('config').get('locations');
+    
+    locationsRef.on((data) => {
+      if (data) {
+        // Gun puede devolver el objeto completo serializado o nodos.
+        // Asumimos que guardamos la lista completa como JSON string para simplificar ordenamiento de arrays
+        // o iteramos propiedades.
+        // Para arrays en Gun es mejor usar .set(), pero para configuración simple:
+        try {
+           if(typeof data === 'string') {
+              setLocations(JSON.parse(data));
+           } else if (data.list) {
+              // Intento de compatibilidad
+             const list = typeof data.list === 'string' ? JSON.parse(data.list) : defaultLocations;
+              setLocations(list);
+           }
+        } catch (e) {
+          console.error("Error parsing locations", e);
+        }
       }
     });
-
-    return () => {
-      if (typeof unsubscribe === 'function') unsubscribe();
-    };
-  }, []);
-
-  const requestNotificationPermission = async () => {
-    try {
-      const token = await requestFCMToken();
-      if (token) {
-        setNotificationPermission('granted');
-        console.log('Notificaciones activadas, token:', token);
-      } else {
-        setNotificationPermission(Notification.permission);
-      }
-    } catch (error) {
-      console.error('Error solicitando permisos:', error);
+    
+    // Inicializar si está vacío (solo admin)
+    if (isAdmin) {
+      locationsRef.put({ list: JSON.stringify(defaultLocations) });
     }
-  };
+  }, [isAdmin]);
 
-  // Show notification for new tasks
+  // Manejar notificaciones (simplificado para Gun - sin FCM por ahora)
   const showNotification = useCallback((task) => {
-    if (notificationPermission === 'granted' && document.hidden) {
-      new Notification('Nueva tarea añadida', {
+    if (Notification.permission === 'granted' && document.hidden) {
+      new Notification('Nueva tarea', {
         body: `${task.authorName || 'Alguien'}: ${task.text}`,
-        icon: '/icon-192.png',
-        tag: task.id
+        icon: '/icon-192.png'
       });
     }
-  }, [notificationPermission]);
+  }, []);
 
-  // Listen to tasks changes
+  // Cargar tareas - Gun.js
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser) return;
 
-    const todosCollection = collection(
-      db,
-      'public_lists',
-      appId,
-      'locations',
-      selectedLocation,
-      'todos'
-    );
+    setTasks([]); // Limpiar al cambiar
+    setLoading(true);
 
-    let isFirstLoad = true;
+    const tasksRef = gun.get(appId).get('locations').get(selectedLocation).get('todos');
+    
+    // map().on() se suscribe a cada item individualmente
+    const loadedTasks = new Map();
 
-    const unsubscribe = onSnapshot(todosCollection, (snapshot) => {
-      const todosData = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      }));
-
-      todosData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-      if (!isFirstLoad) {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const newTaskData = { id: change.doc.id, ...change.doc.data() };
-            if (newTaskData.authorId !== user.uid) {
-              showNotification(newTaskData);
-            }
-          }
-        });
+    const sub = tasksRef.map().on((data, id) => {
+      if (!data) {
+        // null significa borrado
+        loadedTasks.delete(id);
+        const tasksArray = Array.from(loadedTasks.values());
+        tasksArray.sort((a, b) => b.createdAt - a.createdAt);
+        setTasks(tasksArray);
+        return;
       }
-      isFirstLoad = false;
+      
+      // Filtrar nodos internos de Gun (_ meta data)
+      if (id === '_' || !data.text) return; 
 
-      setTasks(todosData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error sync:", error);
+      const task = {
+        id,
+        ...data
+      };
+
+      // Si es nuevo y no soy yo el autor, notificar
+      if (!loadedTasks.has(id)) {
+        if (task.authorId !== currentUser.uid && (Date.now() - task.createdAt < 10000)) {
+           showNotification(task);
+        }
+      }
+
+      loadedTasks.set(id, task);
+      
+      const tasksArray = Array.from(loadedTasks.values());
+      // Ordenar: Prioridad (si existe) y luego fecha
+      tasksArray.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      setTasks(tasksArray);
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [user, selectedLocation, showNotification]);
+    // Safety timeout to stop loading if no tasks found
+    const loadingTimeout = setTimeout(() => {
+        setLoading(false);
+    }, 2000);
 
-  // Auth handlers - Usando nombre de usuario (se convierte a email interno)
-  const usernameToEmail = (username) => `${username.toLowerCase().trim()}@tareas.app`;
+    return () => {
+        sub.off(); // Desuscribir
+        clearTimeout(loadingTimeout);
+    };
+  }, [currentUser, selectedLocation, showNotification]);
 
-  const handleLogin = async (username, password) => {
+  // Auth Handlers
+  const handleLogin = (username, password) => {
     setAuthLoading(true);
     setAuthError('');
-    try {
-      const email = usernameToEmail(username);
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error("Login error:", error);
-      if (error.code === 'auth/invalid-credential') {
-        setAuthError('Usuario o contraseña incorrectos');
-      } else if (error.code === 'auth/user-not-found') {
-        setAuthError('Usuario no encontrado');
+    user.auth(username, password, ({ err }) => {
+      if (err) {
+        setAuthError(translateError(err));
+        setAuthLoading(false);
       } else {
-        setAuthError('Error al iniciar sesión. Intenta de nuevo.');
+        // Login exitoso, el listener 'auth' actualizará el estado
       }
-    } finally {
-      setAuthLoading(false);
-    }
+    });
   };
 
-  const handleRegister = async (username, password, displayName) => {
+  const handleRegister = (username, password, displayName) => {
     setAuthLoading(true);
     setAuthError('');
-    try {
-      const email = usernameToEmail(username);
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: displayName || username });
-    } catch (error) {
-      console.error("Register error:", error);
-      if (error.code === 'auth/email-already-in-use') {
-        setAuthError('Este nombre de usuario ya está en uso');
-      } else if (error.code === 'auth/weak-password') {
-        setAuthError('La contraseña debe tener al menos 6 caracteres');
+    user.create(username, password, ({ err, pub }) => {
+      if (err) {
+        setAuthError(translateError(err));
+        setAuthLoading(false);
       } else {
-        setAuthError('Error al crear cuenta. Intenta de nuevo.');
+        // Login automático tras crear
+        handleLogin(username, password);
       }
-    } finally {
-      setAuthLoading(false);
-    }
+    });
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setTasks([]);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    user.leave();
+    setCurrentUser(null);
+    setTasks([]);
+    // Reload page to clear memory state cleanly
+    window.location.reload(); 
   };
 
-  // Task handlers
+  // Task Handlers
   const handleAddTask = async (e) => {
     if (e) e.preventDefault();
-
     const taskText = newTask.trim();
-    if (!taskText || !user) return;
+    if (!taskText || !currentUser) return;
 
-    try {
-      const todosCollection = collection(
-        db,
-        'public_lists',
-        appId,
-        'locations',
-        selectedLocation,
-        'todos'
-      );
+    const taskData = {
+      text: taskText,
+      completed: false,
+      createdAt: Date.now(),
+      authorId: currentUser.uid,
+      authorName: currentUser.alias,
+      scheduledDate: scheduledDate ? scheduledDate.getTime() : null,
+      priority: 'none'
+    };
 
-      const taskData = {
-        text: taskText,
-        completed: false,
-        createdAt: Date.now(),
-        authorId: user.uid,
-        authorName: user.displayName || user.email?.split('@')[0] || 'Usuario',
-        scheduledDate: scheduledDate ? scheduledDate.getTime() : null
-      };
+    // set() en Gun genera un ID único automáticamente
+    gun.get(appId).get('locations').get(selectedLocation).get('todos').set(taskData);
 
-      await addDoc(todosCollection, taskData);
-
-      setNewTask("");
-      setScheduledDate(null);
-    } catch (error) {
-      console.error("Error adding task:", error);
-      alert("Error al añadir: " + error.message);
-    }
+    setNewTask("");
+    setScheduledDate(null);
   };
 
-  const handleToggleTask = async (task) => {
-    try {
-      const taskRef = doc(
-        db,
-        'public_lists',
-        appId,
-        'locations',
-        selectedLocation,
-        'todos',
-        task.id
-      );
-      await updateDoc(taskRef, { completed: !task.completed });
-    } catch (error) {
-      console.error("Error toggling:", error);
-    }
+  const handleToggleTask = (task) => {
+    // Put partial update
+    gun.get(appId).get('locations').get(selectedLocation).get('todos').get(task.id).put({
+      completed: !task.completed
+    });
   };
 
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteTask = (taskId) => {
     if (!confirm("¿Eliminar permanentemente?")) return;
-    try {
-      const taskRef = doc(
-        db,
-        'public_lists',
-        appId,
-        'locations',
-        selectedLocation,
-        'todos',
-        taskId
-      );
-      await deleteDoc(taskRef);
-    } catch (error) {
-      console.error("Error deleting:", error);
-    }
+    // En Gun, poner null rompe el enlace
+    gun.get(appId).get('locations').get(selectedLocation).get('todos').get(taskId).put(null);
   };
 
-  // Guardar locations en Firebase
-  const saveLocationsToFirebase = async (newLocations) => {
-    try {
-      const locationsDocRef = doc(db, 'public_lists', appId, 'config', 'locations');
-      await setDoc(locationsDocRef, { list: newLocations });
-    } catch (error) {
-      console.error("Error saving locations:", error);
-    }
+  const handleSetPriority = (taskId, priority) => {
+    if (!isAdmin) return;
+    gun.get(appId).get('locations').get(selectedLocation).get('todos').get(taskId).put({
+      priority
+    });
   };
 
-  const handleAddLocation = async (newLocation) => {
+  // Locations Logic
+  const saveLocationsToGun = (newLocations) => {
+    // Guardamos como string para evitar complejidad de grafos por ahora en config
+    gun.get(appId).get('config').get('locations').put({
+        list: JSON.stringify(newLocations)
+    });
+  };
+
+  const handleAddLocation = (newLocation) => {
     const newLocations = [...locations, newLocation];
+    // Optimistic update
     setLocations(newLocations);
     setSelectedLocation(newLocation.id);
-    await saveLocationsToFirebase(newLocations);
+    saveLocationsToGun(newLocations);
   };
 
-  const handleDeleteLocation = async (locationId) => {
+  const handleDeleteLocation = (locationId) => {
     if (!isAdmin) return;
-    // No permitir borrar las predeterminadas
     if (locationId === 'hogar' || locationId === 'trabajo') return;
-
     const newLocations = locations.filter(l => l.id !== locationId);
     setLocations(newLocations);
-    // Si estamos en la lista que se borra, volver a hogar
-    if (selectedLocation === locationId) {
-      setSelectedLocation('hogar');
-    }
-    await saveLocationsToFirebase(newLocations);
+    if (selectedLocation === locationId) setSelectedLocation('hogar');
+    saveLocationsToGun(newLocations);
   };
 
-  const handleEditLocation = async (locationId, updates) => {
+  const handleEditLocation = (locationId, updates) => {
     if (!isAdmin) return;
-
     const newLocations = locations.map(l =>
-      l.id === locationId
-        ? { ...l, name: updates.name, icon: updates.icon }
-        : l
+      l.id === locationId ? { ...l, ...updates } : l
     );
     setLocations(newLocations);
-    await saveLocationsToFirebase(newLocations);
-  };
-
-  // Establecer prioridad de tarea - Solo admin
-  const handleSetPriority = async (taskId, priority) => {
-    if (!isAdmin) return;
-    try {
-      const taskRef = doc(
-        db,
-        'public_lists',
-        appId,
-        'locations',
-        selectedLocation,
-        'todos',
-        taskId
-      );
-      await updateDoc(taskRef, { priority });
-    } catch (error) {
-      console.error("Error setting priority:", error);
-    }
+    saveLocationsToGun(newLocations);
   };
 
   const handleShare = () => {
     const currentLocation = locations.find(l => l.id === selectedLocation);
     const locationName = currentLocation?.name || selectedLocation;
-    // Generar URL única para esta ubicación
-    const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/${selectedLocation}`;
-
+    const shareUrl = `${window.location.origin}/${selectedLocation}`;
     navigator.clipboard.writeText(shareUrl);
-    alert(`¡Enlace copiado!\n\nLista: ${locationName}\nURL: ${shareUrl}\n\nComparte este enlace para que otros puedan ver y añadir tareas a esta lista.`);
+    alert(`¡Enlace copiado!\n\nLista: ${locationName}\nURL: ${shareUrl}\n\nNota: Asegúrate de que los otros usuarios tengan configurado este servidor Gun o estén en la misma red local si es offline.`);
   };
 
   const handleOpenNotifications = () => {
-    if (notificationPermission === 'default') {
-      requestNotificationPermission();
-    } else if (notificationPermission === 'denied') {
-      alert('Las notificaciones están bloqueadas. Actívalas en la configuración de tu navegador.');
-    } else {
-      alert('¡Notificaciones activadas! Recibirás alertas de nuevas tareas.');
-    }
+     if ('Notification' in window) {
+         Notification.requestPermission();
+     }
   };
 
-  // Loading screen
+  // Loading View
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Cargando...</p>
+          <p className="text-slate-600 font-medium">Iniciando nodo P2P...</p>
         </div>
       </div>
     );
   }
 
-  // LOGIN OBLIGATORIO
-  if (!user) {
+  // Login View
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <AuthModal
@@ -420,18 +338,18 @@ export default function TodoPage() {
     );
   }
 
+  // Main UI
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans">
       <div className="max-w-2xl mx-auto">
         <div className="shadow-2xl rounded-3xl bg-white overflow-hidden">
           <Header
             loading={loading}
-            user={user}
+            user={{...currentUser, email: currentUser.alias }} // Compatibilidad con componentes visuales
             onLogout={handleLogout}
             onOpenNotifications={handleOpenNotifications}
           />
 
-          {/* Solo el admin ve las pestañas Y solo si NO viene de enlace compartido */}
           {isAdmin && !isSharedView ? (
             <TabSelector
               selectedLocation={selectedLocation}
@@ -472,9 +390,9 @@ export default function TodoPage() {
             isAdmin={isAdmin}
           />
         </div>
-
         <Footer />
       </div>
     </div>
   );
 }
+

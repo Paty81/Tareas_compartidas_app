@@ -1,10 +1,10 @@
-# 📝 Shared List - Real-Time Tasks
+# 📝 Shared List - Decentralized Tasks
 
 [![Made with React](https://img.shields.io/badge/Made%20with-React-61DAFB?style=flat&logo=react)](https://react.dev/)
-[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![GunDB](https://img.shields.io/badge/GunDB-Decentralized-ff0055?style=flat&logo=gun&logoColor=white)](https://gun.eco/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-A Progressive Web App (PWA) for creating and sharing task lists in real-time. Perfect for families, teams, and groups that need to coordinate tasks collaboratively.
+A **decentralized** Progressive Web App (PWA) for creating and sharing task lists in real-time. Built with **GunDB**, it works purely Peer-to-Peer (P2P), meaning your data lives on your device and syncs directly with others without central servers.
 
 **Made by [Paty81](https://github.com/Paty81)** with 💜
 
@@ -14,14 +14,14 @@ A Progressive Web App (PWA) for creating and sharing task lists in real-time. Pe
 
 ## ✨ Features
 
-- ✅ **Real-time synchronization** - Changes are instantly visible on all devices
-- 🔗 **Easy sharing** - Copy and share the link to collaborate
-- 📱 **Installable as App** - Works like a native app on mobile devices
-- 🌐 **No registration required** - Start using immediately
-- 🎨 **Modern and clean interface** - Intuitive design with Tailwind CSS
-- ☁️ **Automatic cloud saving** - Never lose your tasks
-- 🔄 **Check/uncheck tasks** - Keep track of what's completed
-- 🗑️ **Delete tasks** - Complete management of your list
+- ⛓️ **Decentralized (P2P)** - No central database unique to one owner.
+- ✅ **Real-time synchronization** - Changes propagate instantly across connected peers.
+- 📂 **Multiple Lists** - Organize tasks by categories like "Home" or "Work".
+- 📅 **Due Dates & Priorities** - Set deadlines and mark tasks as High/Medium/Low priority.
+- 🔗 **Easy sharing** - Share a simple URL to invite others to a specific list.
+- 📱 **Installable as App** - Full PWA support for mobile and desktop.
+- 🔒 **Privacy Focused** - No registration required (Anonymous Auth via SEA).
+- 🎨 **Modern Interface** - Clean design with Tailwind CSS.
 
 ---
 
@@ -31,7 +31,6 @@ A Progressive Web App (PWA) for creating and sharing task lists in real-time. Pe
 
 - Node.js (version 18 or higher)
 - npm or yarn
-- A Firebase account (free)
 
 ### Step 1: Clone the Repository
 
@@ -46,56 +45,15 @@ cd tareas-compartidas-app
 npm install
 ```
 
-### Step 3: Configure Firebase
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project (or use an existing one)
-3. Register a web app
-4. Copy the configuration credentials
-5. Open the file `src/config/firebase.js`
-6. Replace the credentials with yours:
-
-```javascript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
-};
-```
-
-### Step 4: Configure Firestore
-
-1. In Firebase Console, go to **Firestore Database**
-2. Create a database in test mode
-3. Set up security rules (basic example):
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /public_lists/{listId}/todos/{todoId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-### Step 5: Enable Anonymous Authentication
-
-1. Go to **Authentication** in Firebase Console
-2. Click on **Sign-in method**
-3. Enable **Anonymous**
-
-### Step 6: Run the Application
+### Step 3: Run the Application
 
 ```bash
 npm run dev
 ```
 
 The application will be available at `http://localhost:5173`
+
+> **Note:** By default, the app connects to public relay peers to facilitate connection between users who are not on the same local network.
 
 ---
 
@@ -105,7 +63,7 @@ The application will be available at `http://localhost:5173`
 npm run build
 ```
 
-Optimized files will be in the `dist/` folder
+Optimized files will be in the `dist/` folder.
 
 To preview the production build:
 
@@ -122,19 +80,17 @@ tareas-compartidas-app/
 ├── public/              # Static files
 ├── src/
 │   ├── components/      # React components
-│   │   ├── Header.jsx
-│   │   ├── TaskForm.jsx
-│   │   ├── TaskItem.jsx
-│   │   ├── TaskList.jsx
-│   │   ├── InstallModal.jsx
-│   │   └── Footer.jsx
+│   │   ├── AuthModal.jsx    # User authentication (SEA)
+│   │   ├── TaskForm.jsx     # Input for new tasks
+│   │   ├── TaskList.jsx     # List display logic
+│   │   ├── TabSelector.jsx  # Location/Category switcher
+│   │   └── ...
 │   ├── config/
-│   │   └── firebase.js  # Firebase configuration
+│   │   └── db.js        # GunDB configuration & initialization
 │   ├── pages/
-│   │   └── TodoPage.jsx # Main page
+│   │   └── TodoPage.jsx # Main application logic
 │   ├── App.jsx          # Root component
-│   ├── main.jsx         # Entry point
-│   └── index.css        # Global styles
+│   └── main.jsx         # Entry point
 ├── index.html
 ├── package.json
 ├── vite.config.js
@@ -146,64 +102,42 @@ tareas-compartidas-app/
 ## 🔧 Technologies Used
 
 - **React 18** - UI Library
-- **Vite** - Build tool and dev server
-- **Firebase** - Backend (Firestore + Auth)
-- **Tailwind CSS** - CSS Framework
-- **Lucide React** - Modern icons
-- **PWA** - Progressive Web App
-
----
-
-## 📱 Install as App
-
-### On iPhone (Safari)
-1. Open the app in Safari
-2. Tap the **Share** button (square with arrow pointing up)
-3. Scroll down and select **Add to Home Screen**
-4. Tap **Add**
-
-### On Android (Chrome)
-1. Open the app in Chrome
-2. Tap the menu (3 vertical dots)
-3. Select **Install app** or **Add to Home screen**
-4. Confirm the installation
+- **Vite** - Build tool
+- **GunDB** - Decentralized Graph Database
+- **Tailwind CSS** - Styling
+- **Lucide React** - Icons
+- **PWA** - Progressive Web App capabilities
 
 ---
 
 ## 🤝 How to Use
 
-1. **Add Task**: Type in the text field and press the `+` button
-2. **Mark as Complete**: Click on the circle to the left of the task
-3. **Delete Task**: Click on the red trash icon
-4. **Share List**: Click on "Copy Link" and send it to whoever you want
-5. **Install App**: Click on "Install App" and follow the instructions
+1. **Create/Login**: Pick a username and password. This generates your cryptographic keys locally.
+2. **Create Lists**: Use the tabs to switch between lists (e.g., "Home", "Work") or create new ones (Admin only).
+3. **Add Task**: Type your task, optionally pick a date, and hit Enter.
+4. **Share**: Click the "Share" button to copy the link for the current list. Send it to your family/team.
+   - _Note_: They need to open the link to see that specific list.
 
 ---
 
-## 🔒 Security and Privacy
+## 🔒 Security & Persistence
 
-- Authentication is anonymous (no personal data required)
-- Each user receives a unique temporary ID
-- Tasks are stored in a shared collection
-- **Important**: Anyone with the link can view and edit the list
+- **Authentication**: Uses Gun's SEA (Security, Encryption, Authorization). No emails, just key pairs.
+- **Data Persistence**: Data is stored in your browser's `localStorage` and synced with any connected peers.
 
 ---
 
 ## 🐛 Troubleshooting
 
 ### Tasks don't sync
-- Verify that Firebase is correctly configured
-- Check the browser console for errors
-- Make sure you have an internet connection
 
-### Authentication error
-- Verify that anonymous authentication is enabled in Firebase
-- Check that the credentials in `firebase.js` are correct
+- Ensure both devices are online.
+- If you are on different networks, it might take a moment to find a common relay peer.
+- Refresh the page to reconnect to peers.
 
-### Can't install as PWA
-- Make sure you're using HTTPS (or localhost)
-- Verify that your browser supports PWAs
-- Try from your browser's menu
+### "Login" keeps appearing
+
+- Your user session is stored in the browser. If you clear cookies/storage, you will need to log in again with the **exact same** username and password to recover your admin rights (if you were an admin).
 
 ---
 
@@ -216,22 +150,8 @@ This project is open source and available under the MIT License.
 ## 👩‍💻 Author
 
 **Paty81**
+
 - GitHub: [@Paty81](https://github.com/Paty81)
-
----
-
-## 🌟 Like the project?
-
-If you find this application useful:
-- Give it a ⭐ on GitHub
-- Share it with your friends
-- Contribute with improvements
-
----
-
-## 📧 Contact
-
-If you have questions, suggestions, or find any bugs, feel free to open an [issue](https://github.com/Paty81/tareas-compartidas-app/issues).
 
 ---
 
