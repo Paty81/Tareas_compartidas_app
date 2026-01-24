@@ -542,6 +542,74 @@ export default function TodoPage() {
     );
   }
 
+  // Migration Logic
+  const handleMigrateList = async () => {
+    if (!isAdmin) return;
+    if (!confirm("¿Quieres proteger esta lista?\n\nSe moverán todas las tareas a una nueva dirección secreta y segura.\nLa dirección antigua dejará de funcionar.")) return;
+
+    setLoading(true);
+    const oldId = selectedLocation;
+    const newId = crypto.randomUUID();
+    const currentName = locations.find(l => l.id === oldId)?.name || 'Lista';
+    const currentIcon = locations.find(l => l.id === oldId)?.icon || 'list';
+
+    // 1. Read all tasks from old node
+    const oldListRef = gun.get(appId).get('locations').get(oldId).get('todos');
+    
+    // We need to wait a bit to ensure we get data (Gun is eventual consistent)
+    // A simple way is to use the 'tasks' state we already have loaded!
+    // Since 'tasks' contains the current full list in memory.
+    
+    if (tasks.length === 0) {
+        // Empty list, just rename config
+        migrateConfig(oldId, newId, currentName, currentIcon);
+        return;
+    }
+
+    // 2. Write to new node
+    const newListRef = gun.get(appId).get('locations').get(newId).get('todos');
+    
+    tasks.forEach(task => {
+        // We clean the object to ensure no gun metadata leaks
+        const cleanTask = {
+            text: task.text,
+            completed: task.completed,
+            createdAt: task.createdAt,
+            authorId: task.authorId,
+            authorName: task.authorName,
+            scheduledDate: task.scheduledDate || null,
+            priority: task.priority || 'none'
+        };
+        newListRef.set(cleanTask);
+    });
+
+    // 3. Update Config
+    migrateConfig(oldId, newId, currentName, currentIcon);
+  };
+
+  const migrateConfig = (oldId, newId, name, icon) => {
+      const newLocations = locations.map(l => 
+          l.id === oldId ? { ...l, id: newId } : l
+      );
+      
+      setLocations(newLocations);
+      // Save global config
+      gun.get(appId).get('config').get('locations').put({
+          list: JSON.stringify(newLocations)
+      });
+      
+      alert("¡Lista protegida con éxito! 🛡️\n\nTe vamos a redirigir a la nueva dirección segura.");
+      
+      // Redirect
+      if (oldId === 'hogar' && window.location.hash === '#/') {
+          window.location.hash = `#/${newId}`;
+      } else {
+          window.location.hash = `#/${newId}`;
+      }
+      setInternalLocation(newId);
+      setLoading(false);
+  };
+
   // Main UI
   return (
     <div className="min-h-screen p-4 md:p-8 font-sans transition-colors duration-500">
@@ -557,19 +625,39 @@ export default function TodoPage() {
             listName={locations.find(l => l.id === selectedLocation)?.name}
           />
 
+          {/* Security Warning Banner */}
+          {isAdmin && (selectedLocation === 'hogar' || selectedLocation === 'trabajo' || selectedLocation === 'personal') && (
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 m-4 mb-0 flex items-center justify-between gap-4 animate-in slide-in-from-top-2">
+                  <div className="flex items-start gap-3">
+                      <div className="bg-amber-100 p-2 rounded-full text-amber-600 mt-1">
+                          <AlertTriangle size={20} /> 
+                      </div>
+                      <div>
+                          <h3 className="font-bold text-amber-800 text-sm">Esta lista no es segura</h3>
+                          <p className="text-amber-700 text-xs mt-1">
+                              La dirección "{selectedLocation}" es pública y fácil de adivinar. 
+                              Cualquiera podría encontrarla.
+                          </p>
+                      </div>
+                  </div>
+                  <button 
+                      onClick={handleMigrateList}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm whitespace-nowrap transition-colors"
+                  >
+                      🛡️ Proteger ahora
+                  </button>
+              </div>
+          )}
+          
+          {/* ... (TabSelector & TaskForm) */}
+
           
             {(isAdmin || !listId) && (
             <TabSelector
               selectedLocation={selectedLocation}
               onLocationChange={(newId) => {
-                // Navegación estilo SPA si estamos en shared link
-                if (newId === 'hogar') {
-                    window.location.hash = '#/';
-                    setSelectedLocation('hogar');
-                } else {
-                    window.location.hash = `#/${newId}`;
-                    setSelectedLocation(newId);
-                }
+                  window.location.hash = `#/${newId}`;
+                  setSelectedLocation(newId);
               }}
               locations={locations}
               onAddLocation={handleAddLocation}
