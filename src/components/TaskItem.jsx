@@ -71,6 +71,10 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, sel
   };
 
   // ... (existing formatDate/Time helpers)
+  
+  const isScheduledForFuture = task.scheduledDate && new Date(task.scheduledDate) > new Date();
+  const currentPriority = priorityOptions.find(p => p.id === task.priority) || priorityOptions[0];
+  const PriorityIcon = currentPriority.icon;
 
   return (
     <div className={`glass-card group flex flex-col rounded-2xl p-4 transition-all hover:-translate-y-1 ${task.completed ? 'bg-slate-50/60' : ''}`}>
