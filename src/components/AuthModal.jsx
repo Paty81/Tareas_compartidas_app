@@ -6,13 +6,14 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister, loading, error }) => 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isLoginMode) {
-      onLogin(username, password);
+      onLogin(username, password, rememberMe);
     } else {
       onRegister(username, password, displayName);
     }
@@ -115,6 +116,22 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister, loading, error }) => 
               />
             </div>
           </div>
+
+          {/* Remember Me Checkbox */}
+          {isLoginMode && (
+              <div className="flex items-center gap-2 px-1">
+                  <input 
+                    type="checkbox" 
+                    id="rememberMe" 
+                    checked={rememberMe} 
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <label htmlFor="rememberMe" className="text-sm text-slate-600 cursor-pointer select-none">
+                      Recordar mi usuario y contraseña
+                  </label>
+              </div>
+          )}
 
           <button
             type="submit"

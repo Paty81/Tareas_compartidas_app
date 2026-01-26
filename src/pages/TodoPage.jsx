@@ -111,7 +111,24 @@ export default function TodoPage() {
   // Auth listener
   useEffect(() => {
     // Check immediate session (Fix navigation hang)
+    // Check immediate session (Fix navigation hang)
     if (user.is) {
+       // Session Cleanup Logic
+       const shouldRemember = localStorage.getItem('remember_me_flag');
+       const isActiveSession = sessionStorage.getItem('active_session');
+
+       if (!shouldRemember && !isActiveSession) {
+           // Si no tenía "Recordar" y es una sesión nueva (navegador cerrado y abierto) -> CERRAR
+           console.log("Limpiando sesión no persistente...");
+           user.leave();
+           setCurrentUser(null);
+           setAuthLoading(false);
+           return;
+       } 
+       
+       // Si persistimos, marcar sesión activa
+       sessionStorage.setItem('active_session', 'true');
+
        const pub = user.is.pub;
        const alias = user.is.alias;
        setCurrentUser({ uid: pub, alias, displayName: alias });
@@ -124,20 +141,25 @@ export default function TodoPage() {
         const pub = user.is.pub;
         const alias = user.is.alias;
 
-        // Guardamos user info localmente inmediatamente para desbloquear la UI
-        setCurrentUser({ 
-          uid: pub, 
-          alias: alias,
-          displayName: alias 
+        // 1. CARGAR PERFIL (Display Name)
+        user.get('profile').once((profile) => {
+             const realName = profile && profile.displayName ? profile.displayName : alias;
+             setCurrentUser({ 
+               uid: pub, 
+               alias: alias,
+               displayName: realName 
+             });
+             
+             // Update public user registry with Real Name too
+             gun.get(appId).get('users').get(pub).put({
+                alias: alias,
+                displayName: realName,
+                pub: pub,
+                lastLogin: Date.now()
+             });
         });
-        setAuthLoading(false);
 
-        // 1. REGISTRO DE USUARIO (Background)
-        gun.get(appId).get('users').get(pub).put({
-            alias: alias,
-            pub: pub,
-            lastLogin: Date.now()
-        });
+        setAuthLoading(false);
 
         // 2. CHEQUEO DE BAN (Background - Si está baneado, lo echamos después)
         gun.get(appId).get('banned_users').get(pub).once((isBanned) => {
@@ -355,7 +377,7 @@ export default function TodoPage() {
   }, [currentUser, selectedLocation, showNotification]); // Removed areNotificationsActive from dependency to avoid re-subscription loop logic if strictly not needed, but showNotification depends on it. Ideally showNotification ref update.
 
   // Auth Handlers
-  const handleLogin = (username, password) => {
+  const handleLogin = (username, password, rememberMe = true) => {
     setAuthLoading(true);
     setAuthError('');
     user.auth(username, password, ({ err }) => {
@@ -363,11 +385,17 @@ export default function TodoPage() {
         setAuthError(translateError(err));
         setAuthLoading(false);
       } else {
+        // Manage Persistence flags
+        if (rememberMe) {
+            localStorage.setItem('remember_me_flag', 'true');
+        } else {
+            localStorage.removeItem('remember_me_flag');
+        }
+        sessionStorage.setItem('active_session', 'true');
+
         // Login exitoso
-        // Si por alguna razón el listener 'auth' no salta rápido, forzamos la comprobación
         setTimeout(() => {
             if (user.is) {
-                 // Si hay usuario pero seguía cargando, desbloqueamos
                  setAuthLoading(false);
             }
         }, 1500);
@@ -384,7 +412,13 @@ export default function TodoPage() {
         setAuthLoading(false);
       } else {
         // Login automático tras crear
-        handleLogin(username, password);
+        user.auth(username, password, () => {
+             // Guardar Display Name en perfil público del usuario
+             if (displayName) {
+                 user.get('profile').put({ displayName });
+             }
+             // Forzar recarga de perfil en estado (handleLogin trigger via listeners)
+        });
       }
     });
   };
@@ -408,7 +442,7 @@ export default function TodoPage() {
       completed: false,
       createdAt: Date.now(),
       authorId: currentUser.uid,
-      authorName: currentUser.alias,
+      authorName: currentUser.displayName || currentUser.alias,
       scheduledDate: scheduledDate ? scheduledDate.getTime() : null,
       priority: newPriority
     };
@@ -514,6 +548,21 @@ export default function TodoPage() {
     
     navigator.clipboard.writeText(shareUrl);
     alert(`¡Enlace copiado! 📋\n\nLista: ${locationName}\nURL: ${shareUrl}\n\n⚠️ NOTA: Si pide login de Vercel, desactiva "Vercel Authentication" en Settings > Deployment Protection.`);
+  };
+
+  const handleShareGroup = () => {
+    // Verificar host
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+       alert("⚠️ Estás en localhost. No compartas este enlace.");
+       return;
+    }
+
+    const allIds = locations.map(l => l.id).join(',');
+    const origin = window.location.origin;
+    const shareUrl = `${origin}/#/${allIds}`;
+    
+    navigator.clipboard.writeText(shareUrl);
+    alert(`¡Enlace de GRUPO copiado! 📋\n\nSe compartirán las ${locations.length} pestañas actuales.\nURL: ${shareUrl}`);
   };
 
   const handleOpenNotifications = () => {

@@ -141,6 +141,14 @@ tareas-compartidas-app/
 
 - Tu sesión de usuario se guarda en el navegador. Si borras cookies/almacenamiento, necesitarás entrar de nuevo con el **mismo** usuario y contraseña para recuperar tus derechos de admin (si lo eras).
 
+### ¿Dónde están mis datos? ☁️
+
+Tus datos están **cifrados criptográficamente** (SEA) y se distribuyen en una red pública de "Relay Peers" (como `gun-manhattan`).
+
+- **Privacidad:** Nadie puede leerlos sin tu usuario y contraseña (ni siquiera los dueños de los servidores).
+- **Nube:** Se guardan en estos nodos comunitarios para que puedas acceder desde diferentes dispositivos.
+- **Seguridad:** Al ser una red descentralizada, no dependen de una sola base de datos corporativa (como Google/Firebase).
+
 ---
 
 ## 📄 Licencia

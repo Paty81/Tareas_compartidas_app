@@ -60,7 +60,7 @@ const TaskItem = ({ task, onToggle, onDelete, onSetPriority, isAdmin, appId, sel
       const commentData = {
           text: newComment.trim(),
           createdAt: Date.now(),
-          author: currentUser ? currentUser.alias : "Anónimo"
+          author: currentUser ? (currentUser.displayName || currentUser.alias) : "Anónimo"
           // Ideally pass `currentUser` or `userAlias` to TaskItem.
           // For now, let's just say "Usuario". 
           // Or better: Pass `userAlias` from TaskList -> TodoPage.
