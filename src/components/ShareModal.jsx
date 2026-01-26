@@ -36,14 +36,23 @@ const ShareModal = ({ isOpen, onClose, locations }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
+    <div 
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300"
+        onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+        }}
+    >
       <div className="glass-panel w-full max-w-md overflow-hidden rounded-3xl animate-in zoom-in-95 duration-300 shadow-2xl relative bg-white">
         
         {/* Header */}
         <div className="bg-indigo-600 p-6 text-white text-center relative overflow-hidden">
              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-             <button onClick={onClose} className="absolute right-4 top-4 p-2 hover:bg-white/20 rounded-full transition-colors">
-                <X size={20} />
+             <button 
+                onClick={onClose} 
+                className="absolute right-4 top-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors z-50 cursor-pointer"
+                title="Cerrar ventana"
+             >
+                <X size={24} />
              </button>
              <div className="relative z-10 flex flex-col items-center">
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-sm">
