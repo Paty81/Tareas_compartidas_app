@@ -8,6 +8,7 @@ import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
+import ShareModal from '../components/ShareModal';
 import TabSelector from '../components/TabSelector';
 
 // USUARIO DEL ADMINISTRADOR (tu alias público)
@@ -34,6 +35,7 @@ export default function TodoPage() {
   const [scheduledDate, setScheduledDate] = useState(null);
   const [newPriority, setNewPriority] = useState('none');
   const [loading, setLoading] = useState(true);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   // ...
 
@@ -556,13 +558,8 @@ export default function TodoPage() {
        alert("⚠️ Estás en localhost. No compartas este enlace.");
        return;
     }
-
-    const allIds = locations.map(l => l.id).join(',');
-    const origin = window.location.origin;
-    const shareUrl = `${origin}/#/${allIds}`;
     
-    navigator.clipboard.writeText(shareUrl);
-    alert(`¡Enlace de GRUPO copiado! 📋\n\nSe compartirán las ${locations.length} pestañas actuales.\nURL: ${shareUrl}`);
+    setShareModalOpen(true);
   };
 
   const handleOpenNotifications = () => {
@@ -738,6 +735,12 @@ export default function TodoPage() {
         </div>
         <Footer />
       </div>
+
+      <ShareModal 
+        isOpen={shareModalOpen} 
+        onClose={() => setShareModalOpen(false)} 
+        locations={locations} 
+      />
     </div>
   );
 }
