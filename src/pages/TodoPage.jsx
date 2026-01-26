@@ -191,30 +191,29 @@ export default function TodoPage() {
         }
       });
     } else {
-      // USUARIO NORMAL: Carga solo SUS listas descubiertas
+      // USUARIO NORMAL: Carga solo SUS listas descubiertas (GRAPH MODE)
       if (!user.is) return;
       
-      const myListsRef = user.get('my_shared_lists');
-      
-      myListsRef.on((data) => {
-        if (data) {
-          try {
-             const parsed = typeof data === 'string' ? JSON.parse(data) : (data.list ? JSON.parse(data.list) : []);
-             const list = Array.isArray(parsed) ? parsed : [];
-             setLocations(list);
-          } catch (e) {
-             console.error("Error loading my lists", e);
-             setLocations([]);
-          }
-        } else {
-             setLocations([]);
-        }
+      const myListsRef = user.get('my_shared_lists_graph');
+      // Use map to accumulate
+      const loadedLists = new Map();
+
+      myListsRef.map().on((data, id) => {
+         if (!data) {
+             loadedLists.delete(id);
+         } else {
+             // Ensure data has the ID
+             loadedLists.set(id, { id, ...data });
+         }
+         // Convert Map to Array and sort by lastAccess or created
+         const list = Array.from(loadedLists.values());
+         setLocations(list);
       });
     }
   }, [isAdmin, currentUser]); // Dependencia currentUser para recargar al loguear
 
   // Efecto para "Descubrir" listas cuando visito un enlace compartido
-  // Persistence for Guests (Unified View & Multi-Tab Support)
+  // Persistence for Guests (Unified View & Multi-Tab Support) - GRAPH VERSION
   useEffect(() => {
      if (isAdmin || !isSharedView || !currentUser || !listId) return;
 
@@ -239,46 +238,28 @@ export default function TodoPage() {
               return id;
           };
 
-          // Leemos las listas ACTUALES del usuario para hacer un merge seguro
-          user.get('my_shared_lists').once((userData) => {
-              let currentList = [];
-              if (userData) {
+          incomingIds.forEach(id => {
+              // Attempt to find metadata in globalData, else fallback
+              let foundName = extractName(id);
+              let foundIcon = 'pin';
+
+              if (globalData && globalData.list) {
                   try {
-                      currentList = typeof userData === 'string' ? JSON.parse(userData) : (userData.list ? JSON.parse(userData.list) : []);
-                  } catch (e) { console.error("Error parsing user lists", e); }
-              }
-
-              let hasChanges = false;
-              let newList = [...currentList];
-
-              incomingIds.forEach(id => {
-                  if (!newList.some(l => l.id === id)) {
-                      // Attempt to find metadata in globalData, else fallback
-                      let foundName = extractName(id);
-                      let foundIcon = 'pin';
-
-                      if (globalData && globalData.list) {
-                          try {
-                              const globalList = typeof globalData.list === 'string' ? JSON.parse(globalData.list) : globalData.list;
-                              const match = globalList.find(l => l.id === id);
-                              if (match) {
-                                  foundName = match.name;
-                                  foundIcon = match.icon;
-                              }
-                          } catch(e) {}
+                      const globalList = typeof globalData.list === 'string' ? JSON.parse(globalData.list) : globalData.list;
+                      const match = globalList.find(l => l.id === id);
+                      if (match) {
+                          foundName = match.name;
+                          foundIcon = match.icon;
                       }
-                      
-                      newList.push({ id, name: foundName, icon: foundIcon });
-                      hasChanges = true;
-                  }
-              });
-
-              if (hasChanges) {
-                  // Guardar en Gun (Source of Truth)
-                  user.get('my_shared_lists').put(JSON.stringify(newList));
-                  // Actualizar estado local
-                  setLocations(newList);
+                  } catch(e) {}
               }
+              
+              // GRAPH WRITE: Atomic update per node. Saves us from race conditions!
+              user.get('my_shared_lists_graph').get(id).put({
+                  name: foundName,
+                  icon: foundIcon,
+                  lastAccess: Date.now()
+              });
           });
      });
   }, [isSharedView, listId, isAdmin, currentUser]);
